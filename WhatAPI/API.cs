@@ -371,6 +371,16 @@ namespace What
             return JsonConvert.DeserializeObject<Users>(Json);
         }
 
+        /// <summary>
+        /// Downloads the torrent file.
+        /// </summary>
+        /// <param name="torrentID">The ID of the torrent to download</param>
+        /// <returns>A byte array with the torrent file contents.</returns>
+        public byte[] DownloadTorrent(uint torrentID)
+        {
+            return RequestBytes(this.RootWhatCDURI, string.Format("torrents.php?action=download&id={0}", torrentID));
+        }
+
         // Private
 
         /// <summary>
@@ -412,6 +422,39 @@ namespace What
                 {
                     if (Response.StatusCode != HttpStatusCode.OK) throw new WebException(string.Format("Non-OK HTTP status returned. Status code {0}: {1}", Response.StatusCode, Response.StatusDescription));
                     return Reader.ReadToEnd();
+                }
+            }
+            finally
+            {
+                if (Response != null) Response.Close();
+            }
+        }
+
+        /// <summary>
+        /// Performs a binary request. 
+        /// </summary>
+        /// <param name="uri">Base URI.</param>
+        /// <param name="request">Request arguments (appended to end of base URI).</param>
+        /// <returns>Raw binary results.</returns>
+        private byte[] RequestBytes(Uri uri, string request)
+        {
+            HttpWebResponse Response = null;
+            try
+            {
+                HttpWebRequest Request = WebRequest.Create(new Uri(uri, request)) as HttpWebRequest;
+                Request.ContentType = "application/json; charset=utf-8";
+                Request.CookieContainer = this.CookieJar;
+                Response = Request.GetResponse() as HttpWebResponse;
+                using (Stream stream = Response.GetResponseStream())
+                {
+                    MemoryStream result = new MemoryStream();
+                    byte[] buffer = new byte[4096];
+                    int read;
+                    while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        result.Write(buffer, 0, read);
+                    }
+                    return result.ToArray();
                 }
             }
             finally
