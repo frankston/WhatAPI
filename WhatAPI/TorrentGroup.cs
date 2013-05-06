@@ -68,7 +68,7 @@ namespace What
             public uint year { get; set; }
             public string recordLabel { get; set; }
             public string catalogueNumber { get; set; }
-            public uint releaseType { get; set; }
+            public ReleaseType releaseType { get; set; }
             public uint categoryId { get; set; }
             public string categoryName { get; set; }
             public DateTime time { get; set; }

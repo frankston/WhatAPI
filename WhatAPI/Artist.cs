@@ -70,7 +70,7 @@ namespace What
             public string groupRecordLabel { get; set; }
             public string groupCatalogueNumber { get; set; }
             public List<string> tags { get; set; }
-            public uint releaseType { get; set; }
+            public ReleaseType releaseType { get; set; }
             public bool groupVanityHouse { get; set; }
             public bool hasBookmarked { get; set; }
             public List<Torrent> torrent { get; set; }
