@@ -50,7 +50,7 @@ namespace What
             public int logScore { get; set; } // Can be negative value
             public uint fileCount { get; set; }
             public bool freeTorrent { get; set; }
-            public uint size { get; set; }
+            public long size { get; set; }
             public uint leechers { get; set; }
             public uint seeders { get; set; }
             public uint snatched { get; set; }
