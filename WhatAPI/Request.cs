@@ -134,7 +134,7 @@ namespace What
             public string description { get; set; }
             public MusicInfo musicInfo { get; set; }
             public string catalogueNumber { get; set; }
-            public uint releaseType { get; set; }
+            public ReleaseType releaseType { get; set; }
             public string releaseName { get; set; }
             public string bitrateList { get; set; }
             public string formatList { get; set; }

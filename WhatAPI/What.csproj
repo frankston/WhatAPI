@@ -48,6 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ReleaseType.cs" />
     <Compile Include="Thread.cs" />
     <Compile Include="Announcements.cs" />
     <Compile Include="Top10Tags.cs" />

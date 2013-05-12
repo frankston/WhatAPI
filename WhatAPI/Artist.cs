@@ -50,7 +50,7 @@ namespace What
             public int logScore { get; set; } // Can be negative value
             public uint fileCount { get; set; }
             public bool freeTorrent { get; set; }
-            public uint size { get; set; }
+            public long size { get; set; }
             public uint leechers { get; set; }
             public uint seeders { get; set; }
             public uint snatched { get; set; }
@@ -70,7 +70,7 @@ namespace What
             public string groupRecordLabel { get; set; }
             public string groupCatalogueNumber { get; set; }
             public List<string> tags { get; set; }
-            public uint releaseType { get; set; }
+            public ReleaseType releaseType { get; set; }
             public bool groupVanityHouse { get; set; }
             public bool hasBookmarked { get; set; }
             public List<Torrent> torrent { get; set; }
