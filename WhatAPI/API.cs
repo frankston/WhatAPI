@@ -310,7 +310,7 @@ namespace What
         /// <returns>Torrents object.</returns>
         public Torrents SearchTorrents(Dictionary<string, string> criteria, uint page)
         {
-            var uriParts = criteria.Select(c => c.Key + Uri.EscapeDataString(c.Value));
+            var uriParts = criteria.Select(c => c.Key + "=" + Uri.EscapeDataString(c.Value));
             string stringCriteria = string.Join("&", uriParts);
             string Json = RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=browse&{0}&page={1}", stringCriteria, page));
             return JsonConvert.DeserializeObject<Torrents>(Json);
@@ -345,6 +345,18 @@ namespace What
         public Artist GetArtist(uint artistID)
         {
             string Json = RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=artist&id={0}", artistID));
+            return JsonConvert.DeserializeObject<Artist>(Json);
+        }
+
+        /// <summary>
+        /// Gets artist information.
+        /// Known Issue: Only populates similar artists the first time an artist is queried and never again: https://what.cd/forums.php?action=viewthread&threadid=169786 
+        /// </summary>
+        /// <param name="artistID">Artist ID.</param>
+        /// <returns>Artist object.</returns>
+        public Artist GetArtist(string artistName)
+        {
+            string Json = RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=artist&artistname={0}", artistName));
             return JsonConvert.DeserializeObject<Artist>(Json);
         }
 
