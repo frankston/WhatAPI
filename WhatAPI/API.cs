@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using Newtonsoft.Json;
@@ -296,7 +298,21 @@ namespace What
         /// <returns>Torrents object.</returns>
         public Torrents SearchTorrents(string searchTerm, uint page)
         {
-            string Json = RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=browse&searchstr={0}&page={1}", searchTerm, page));
+            string Json = RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=browse&searchstr={0}&page={1}", Uri.EscapeDataString(searchTerm), page));
+            return JsonConvert.DeserializeObject<Torrents>(Json);
+        }
+
+        /// <summary>
+        /// Searches torrents based on various criteria.
+        /// </summary>
+        /// <param name="searchTerm">The criteria to search for in key-value pairs.</param>
+        /// <param name="page">Results page number.</param>
+        /// <returns>Torrents object.</returns>
+        public Torrents SearchTorrents(Dictionary<string, string> criteria, uint page)
+        {
+            var uriParts = criteria.Select(c => c.Key + Uri.EscapeDataString(c.Value));
+            string stringCriteria = string.Join("&", uriParts);
+            string Json = RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=browse&{0}&page={1}", stringCriteria, page));
             return JsonConvert.DeserializeObject<Torrents>(Json);
         }
 
@@ -367,7 +383,7 @@ namespace What
         /// <returns>Users object.</returns>
         public Users SearchUsers(string searchTerm, uint page)
         {
-            string Json = RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=usersearch&search={0}&page={1}",searchTerm, page));
+            string Json = RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=usersearch&search={0}&page={1}", searchTerm, page));
             return JsonConvert.DeserializeObject<Users>(Json);
         }
 
@@ -550,25 +566,25 @@ namespace What
             /// Optional.
             /// </summary>
             string SearchTerm { get; set; }
-            
+
             /// <summary>
             /// Page number to display (default: 1).
             /// Optional.
             /// </summary>
             int Page { get; set; }
-            
+
             /// <summary>
             /// Include filled requests in results (default: false).
             /// Optional.
             /// </summary>
             bool ShowFilled { get; set; }
-            
+
             /// <summary>
             /// Tags to search by (comma separated).
             /// Optional.
             /// </summary>
             string Tags { get; set; }
-            
+
             /// <summary>
             /// Acceptable values:
             /// MatchAll = 1
