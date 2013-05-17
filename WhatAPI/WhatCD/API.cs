@@ -305,13 +305,13 @@ namespace WhatCD
             if (!string.IsNullOrWhiteSpace(options.FileList)) Query.Append(string.Format("&filelist={0}", Uri.EscapeDataString(options.FileList)));
             if (!string.IsNullOrWhiteSpace(options.Format)) Query.Append(string.Format("&format={0}", Uri.EscapeDataString(options.Format)));
             if (!string.IsNullOrWhiteSpace(options.FreeTorrent)) Query.Append(string.Format("&freetorrent={0}", Uri.EscapeDataString(options.FreeTorrent)));
-            if (!string.IsNullOrWhiteSpace(options.Group_Results)) Query.Append(string.Format("&group_results={0}", Uri.EscapeDataString(options.Group_Results)));
+            if (!string.IsNullOrWhiteSpace(options.GroupResults)) Query.Append(string.Format("&group_results={0}", Uri.EscapeDataString(options.GroupResults)));
             if (!string.IsNullOrWhiteSpace(options.GroupName)) Query.Append(string.Format("&groupname={0}", Uri.EscapeDataString(options.GroupName)));
             if (!string.IsNullOrWhiteSpace(options.HasCue)) Query.Append(string.Format("&hascue={0}", Uri.EscapeDataString(options.HasCue)));
             if (!string.IsNullOrWhiteSpace(options.HasLog)) Query.Append(string.Format("&haslog={0}", Uri.EscapeDataString(options.HasLog)));
             if (!string.IsNullOrWhiteSpace(options.Media)) Query.Append(string.Format("&media={0}", Uri.EscapeDataString(options.Media)));
-            if (!string.IsNullOrWhiteSpace(options.Order_By)) Query.Append(string.Format("&order_by={0}", Uri.EscapeDataString(options.Order_By)));
-            if (!string.IsNullOrWhiteSpace(options.Order_Way)) Query.Append(string.Format("&order_way={0}", Uri.EscapeDataString(options.Order_Way)));
+            if (!string.IsNullOrWhiteSpace(options.OrderBy)) Query.Append(string.Format("&order_by={0}", Uri.EscapeDataString(options.OrderBy)));
+            if (!string.IsNullOrWhiteSpace(options.OrderWay)) Query.Append(string.Format("&order_way={0}", Uri.EscapeDataString(options.OrderWay)));
             if (!string.IsNullOrWhiteSpace(options.Page)) Query.Append(string.Format("&page={0}", Uri.EscapeDataString(options.Page)));
             if (!string.IsNullOrWhiteSpace(options.RecordLabel)) Query.Append(string.Format("&recordlabel={0}", Uri.EscapeDataString(options.RecordLabel)));
             if (!string.IsNullOrWhiteSpace(options.ReleaseType)) Query.Append(string.Format("&releasetype={0}", Uri.EscapeDataString(options.ReleaseType)));
@@ -322,7 +322,7 @@ namespace WhatCD
             if (!string.IsNullOrWhiteSpace(options.Scene)) Query.Append(string.Format("&scene={0}", Uri.EscapeDataString(options.Scene)));
             if (!string.IsNullOrWhiteSpace(options.SearchTerm)) Query.Append(string.Format("&searchterm={0}", Uri.EscapeDataString(options.SearchTerm)));
             if (!string.IsNullOrWhiteSpace(options.TagList)) Query.Append(string.Format("&taglist={0}", Uri.EscapeDataString(options.TagList)));
-            if (!string.IsNullOrWhiteSpace(options.Tags_Type)) Query.Append(string.Format("&tags_type={0}", Uri.EscapeDataString(options.Tags_Type)));
+            if (!string.IsNullOrWhiteSpace(options.TagsType)) Query.Append(string.Format("&tags_type={0}", Uri.EscapeDataString(options.TagsType)));
             if (!string.IsNullOrWhiteSpace(options.VanityHouse)) Query.Append(string.Format("&vanityhouse={0}", Uri.EscapeDataString(options.VanityHouse)));
             if (!string.IsNullOrWhiteSpace(options.Year)) Query.Append(string.Format("&year={0}", Uri.EscapeDataString(options.Year)));
 
@@ -579,10 +579,10 @@ namespace WhatCD
             string VanityHouse { get; set; }
             string FreeTorrent { get; set; }
             string TagList { get; set; }
-            string Tags_Type { get; set; }
-            string Order_By { get; set; }
-            string Order_Way { get; set; }
-            string Group_Results { get; set; }
+            string TagsType { get; set; }
+            string OrderBy { get; set; }
+            string OrderWay { get; set; }
+            string GroupResults { get; set; }
             string SearchTerm { get; set; }
             string Page { get; set; }
         }
