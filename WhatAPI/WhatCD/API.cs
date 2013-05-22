@@ -9,31 +9,37 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using Newtonsoft.Json;
-using WhatCD.ActionAnnouncements;
-using WhatCD.ActionBookmarks.TypeArtists;
-using WhatCD.ActionBookmarks.TypeTorrents;
-using WhatCD.ActionBrowse;
-using WhatCD.ActionForum.TypeMain;
-using WhatCD.ActionForum.TypeViewForum;
-using WhatCD.ActionForum.TypeViewThread;
-using WhatCD.ActionInbox;
-using WhatCD.ActionInbox.TypeViewConv;
-using WhatCD.ActionIndex;
-using WhatCD.ActionRequests;
-using WhatCD.ActionSimilarArtists;
-using WhatCD.ActionSubscriptions;
-using WhatCD.ActionTop10.TypeTags;
-using WhatCD.ActionTop10.TypeTorrents;
-using WhatCD.ActionTop10.TypeUsers;
-using WhatCD.ActionTorrentGroup;
-using WhatCD.ActionUser;
-using WhatCD.ActionUserSearch;
-using WhatCD.WhatStatus;
+using WhatCD.Model;
+using WhatCD.Model.ActionAnnouncements;
+using WhatCD.Model.ActionBookmarks.TypeArtists;
+using WhatCD.Model.ActionBookmarks.TypeTorrents;
+using WhatCD.Model.ActionBrowse;
+using WhatCD.Model.ActionForum.TypeMain;
+using WhatCD.Model.ActionForum.TypeViewForum;
+using WhatCD.Model.ActionForum.TypeViewThread;
+using WhatCD.Model.ActionInbox;
+using WhatCD.Model.ActionInbox.TypeViewConv;
+using WhatCD.Model.ActionIndex;
+using WhatCD.Model.ActionRequests;
+using WhatCD.Model.ActionSimilarArtists;
+using WhatCD.Model.ActionSubscriptions;
+using WhatCD.Model.ActionTop10.TypeTags;
+using WhatCD.Model.ActionTop10.TypeTorrents;
+using WhatCD.Model.ActionTop10.TypeUsers;
+using WhatCD.Model.ActionTorrentGroup;
+using WhatCD.Model.ActionUser;
+using WhatCD.Model.ActionUserSearch;
+using WhatCD.Model.WhatStatus;
 
-// TODO: Test all forums for invalid (all 0's) dates
+// TODO: Test all forums for invalid dates - I know they're out there!
 // TODO: Build in a global timer thread that prevents any call being made to the servers within 2 seconds of any other
 // TODO: make download torrent into class (and capture filename)
+// TODO: method to capture log file contents
 // TODO: Improve comments
+// TODO: Add action=torrents
+// TODO: Move all bug report info and urls into github
+// TODO: Implement json attributes to change model member names to camel casing
+// TODO: Tidy up all query building
 
 namespace WhatCD
 {
@@ -61,7 +67,17 @@ namespace WhatCD
             private set { this.cookieJar = value; }
         }
 
+        /// <summary>
+        /// If set to true then the deserialization process will raise an exception if any JSON members exist that do not exist in the model data.
+        /// This is primarily intended to be used with unit testing.
+        /// </summary>
+        public bool ErrorOnMissingMember { get; set; }
 
+        /// <summary>
+        /// Logs the user on to what.cd.
+        /// </summary>
+        /// <param name="username">What.cd username.</param>
+        /// <param name="password">What.cd password.</param>
         public API(string username, string password)
         {
             this.Login(username, password);
@@ -70,22 +86,34 @@ namespace WhatCD
 
         // Status
 
+        /// <summary>
+        /// Determines if the site, tracker, and irc are up.
+        /// </summary>
+        /// <returns>JSON response deserialized into Status object.</returns>
         public Status GetStatus()
         {
             var json = this.RequestJson(this.RootWhatStatusURI, "api/status");
-            return JsonConvert.DeserializeObject<Status>(json);
+            return Deserialize<Status>(json);
         }
 
+        /// <summary>
+        /// Obtains the current site, tracker, and irc uptime (hours).
+        /// </summary>
+        /// <returns>JSON response deserialized into Uptime object.</returns>
         public Uptime GetUptime()
         {
             var json = this.RequestJson(this.RootWhatStatusURI, "api/uptime");
-            return JsonConvert.DeserializeObject<Uptime>(json);
+            return Deserialize<Uptime>(json);
         }
 
+        /// <summary>
+        /// Obtains the maximum uptime records for the site, tracker, and irc (hours).
+        /// </summary>
+        /// <returns>JSON response deserialized into Records object.</returns>
         public Records GetRecords()
         {
             var json = this.RequestJson(this.RootWhatStatusURI, "api/records");
-            return JsonConvert.DeserializeObject<Records>(json);
+            return Deserialize<Records>(json);
         }
 
 
@@ -99,7 +127,7 @@ namespace WhatCD
         public Subscriptions GetSubscriptions(bool onlyShowUnread)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=subscriptions&showunread={0}", onlyShowUnread ? 1 : 0));
-            return JsonConvert.DeserializeObject<Subscriptions>(json);
+            return Deserialize<Subscriptions>(json);
         }
 
         /// <summary>
@@ -109,7 +137,7 @@ namespace WhatCD
         public ForumMain GetForumMain()
         {
             var json = this.RequestJson(this.RootWhatCDURI, "ajax.php?action=forum&type=main");
-            return JsonConvert.DeserializeObject<ForumMain>(json);
+            return Deserialize<ForumMain>(json);
         }
 
         /// <summary>
@@ -118,10 +146,10 @@ namespace WhatCD
         /// <param name="forumID">Forum ID.</param>
         /// <param name="page">Page number.</param>
         /// <returns>JSON response deserialized into ForumViewForum object.</returns>
-        public ForumViewForum GetForumViewForum(uint forumID, uint page)
+        public ForumViewForum GetForumViewForum(int forumID, int page)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=forum&type=viewforum&forumid={0}&page={1}", forumID, page));
-            return JsonConvert.DeserializeObject<ForumViewForum>(json);
+            return Deserialize<ForumViewForum>(json);
         }
 
         /// <summary>
@@ -130,7 +158,7 @@ namespace WhatCD
         /// <param name="threadID">Thread ID.</param>
         /// <param name="page">Page number.</param>
         /// <returns>JSON response deserialized into ForumViewThread object.</returns>
-        public ForumViewThread GetForumViewThread(uint threadID, uint page)
+        public ForumViewThread GetForumViewThread(int threadID, int page)
         {
             return this.SharedGetForumViewThread(string.Format("ajax.php?action=forum&type=viewthread&threadid={0}&page={1}", threadID, page));
         }
@@ -140,7 +168,7 @@ namespace WhatCD
         /// </summary>
         /// <param name="postID">Post ID.</param>
         /// <returns>JSON response deserialized into ForumViewThread object.</returns>
-        public ForumViewThread GetForumViewThread(uint postID)
+        public ForumViewThread GetForumViewThread(int postID)
         {
             return this.SharedGetForumViewThread(string.Format("ajax.php?action=forum&type=viewthread&postid={0}", postID));
         }
@@ -148,7 +176,7 @@ namespace WhatCD
         private ForumViewThread SharedGetForumViewThread(string query)
         {
             var json = this.RequestJson(this.RootWhatCDURI, query);
-            return JsonConvert.DeserializeObject<ForumViewThread>(json);
+            return Deserialize<ForumViewThread>(json);
         }
 
 
@@ -170,7 +198,7 @@ namespace WhatCD
             if (!string.IsNullOrWhiteSpace(options.SearchType)) query.Append(string.Format("&searchtype={0}", Uri.EscapeDataString(options.SearchType)));
 
             var json = this.RequestJson(this.RootWhatCDURI, query.ToString());
-            return JsonConvert.DeserializeObject<Inbox>(json);
+            return Deserialize<Inbox>(json);
         }
 
         /// <summary>
@@ -178,11 +206,12 @@ namespace WhatCD
         /// </summary>
         /// <param name="conversationID">Conversation ID.</param>
         /// <returns>JSON response deserialized into InboxViewConv object.</returns>
-        public InboxViewConv GetInboxViewConv(uint conversationID)
+        public InboxViewConv GetInboxViewConv(int conversationID)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=inbox&type=viewconv&id={0}", conversationID));
-            return JsonConvert.DeserializeObject<InboxViewConv>(json);
+            return Deserialize<InboxViewConv>(json);
         }
+
 
         // Misc
 
@@ -193,7 +222,7 @@ namespace WhatCD
         public Index GetIndex()
         {
             var json = this.RequestJson(this.RootWhatCDURI, "ajax.php?action=index");
-            return JsonConvert.DeserializeObject<Index>(json);
+            return Deserialize<Index>(json);
         }
 
         /// <summary>
@@ -203,7 +232,7 @@ namespace WhatCD
         public Status GetWhatStatus()
         {
             var json = this.RequestJson(this.RootWhatStatusURI, "json.php");
-            return JsonConvert.DeserializeObject<Status>(json);
+            return Deserialize<Status>(json);
         }
 
         /// <summary>
@@ -213,7 +242,7 @@ namespace WhatCD
         public Announcements GetAnnouncements()
         {
             var json = this.RequestJson(this.RootWhatCDURI, "ajax.php?action=announcements");
-            return JsonConvert.DeserializeObject<Announcements>(json);
+            return Deserialize<Announcements>(json);
         }
 
         /// <summary>
@@ -222,10 +251,10 @@ namespace WhatCD
         /// </summary>
         /// <param name="page">Notification page number.</param>
         /// <returns>JSON response deserialized into Notifications object.</returns>
-        public Notifications GetNotifications(uint page)
+        public WhatCD.Model.ActionNotifications.Notifications GetNotifications(int page)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=notifications&page={0}", page));
-            return JsonConvert.DeserializeObject<Notifications>(json);
+            return Deserialize<WhatCD.Model.ActionNotifications.Notifications>(json);
         }
 
         /// <summary>
@@ -234,10 +263,10 @@ namespace WhatCD
         /// </summary>
         /// <param name="limit">Maximum result limit. Acceptable values: 10, 25, and 100</param>
         /// <returns>JSON response deserialized into Top10Torrents object.</returns>
-        public Top10Torrents GetTop10Torrents(uint limit)
+        public Top10Torrents GetTop10Torrents(int limit)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=top10&type=torrents&limit={0}", limit));
-            return JsonConvert.DeserializeObject<Top10Torrents>(json);
+            return Deserialize<Top10Torrents>(json);
         }
 
         /// <summary>
@@ -245,10 +274,10 @@ namespace WhatCD
         /// </summary>
         /// <param name="limit">Maximum result limit. Acceptable values: 10, 25, and 100</param>
         /// <returns>JSON response deserialized into Top10Tags object.</returns>
-        public Top10Tags GetTop10Tags(uint limit)
+        public Top10Tags GetTop10Tags(int limit)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=top10&type=tags&limit={0}", limit));
-            return JsonConvert.DeserializeObject<Top10Tags>(json);
+            return Deserialize<Top10Tags>(json);
         }
 
         /// <summary>
@@ -257,11 +286,12 @@ namespace WhatCD
         /// </summary>
         /// <param name="limit">Maximum result limit. Acceptable values: 10, 25, and 100</param>
         /// <returns>JSON response deserialized into Top10Users object.</returns>
-        public Top10Users GetTop10Users(uint limit)
+        public Top10Users GetTop10Users(int limit)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=top10&type=users&limit={0}", limit));
-            return JsonConvert.DeserializeObject<Top10Users>(json);
+            return Deserialize<Top10Users>(json);
         }
+
 
         // Requests
 
@@ -270,7 +300,7 @@ namespace WhatCD
         /// </summary>
         /// <param name="options">Object that inherits IGetRequest</param>
         /// <returns>JSON response deserialized into Request object</returns>
-        public ActionRequest.Request GetRequest(IGetRequest options)
+        public WhatCD.Model.ActionRequest.Request GetRequest(IGetRequest options)
         {
             var query = new StringBuilder();
             query.Append("ajax.php?action=request");
@@ -278,7 +308,7 @@ namespace WhatCD
             if (options.CommentPage != null && options.CommentPage > 0) query.Append(string.Format("&page={0}", options.CommentPage));
 
             var json = this.RequestJson(this.RootWhatCDURI, query.ToString());
-            return JsonConvert.DeserializeObject<ActionRequest.Request>(json);
+            return Deserialize<WhatCD.Model.ActionRequest.Request>(json);
         }
 
         /// <summary>
@@ -298,8 +328,9 @@ namespace WhatCD
             if (!string.IsNullOrWhiteSpace(options.Tags)) query.Append(string.Format("&tags={0}", Uri.EscapeDataString(options.Tags)));
 
             var json = this.RequestJson(this.RootWhatCDURI, query.ToString());
-            return JsonConvert.DeserializeObject<Requests>(json);
+            return Deserialize<Requests>(json);
         }
+
 
         // Torrents
 
@@ -310,10 +341,10 @@ namespace WhatCD
         /// <param name="artistID">Artist ID.</param>
         /// <param name="limit">Maximum result limit.</param>
         /// <returns>JSON response deserialized into SimilarArtists object.</returns>
-        public SimilarArtists GetSimilarArtists(uint artistID, uint limit)
+        public SimilarArtists GetSimilarArtists(int artistID, int limit)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=similar_artists&id={0}&limit={1}", artistID, limit));
-            return JsonConvert.DeserializeObject<SimilarArtists>(json);
+            return Deserialize<SimilarArtists>(json);
         }
 
         /// <summary>
@@ -325,7 +356,6 @@ namespace WhatCD
         {
             var query = new StringBuilder();
             query.Append("ajax.php?action=browse&action=advanced");
-
             if (!string.IsNullOrWhiteSpace(options.ArtistName)) query.Append(string.Format("&artistname={0}", Uri.EscapeDataString(options.ArtistName)));
             if (!string.IsNullOrWhiteSpace(options.CatalogueNumber)) query.Append(string.Format("&cataloguenumber={0}", Uri.EscapeDataString(options.CatalogueNumber)));
             if (!string.IsNullOrWhiteSpace(options.Encoding)) query.Append(string.Format("&encoding={0}", Uri.EscapeDataString(options.Encoding)));
@@ -354,7 +384,7 @@ namespace WhatCD
             if (!string.IsNullOrWhiteSpace(options.Year)) query.Append(string.Format("&year={0}", Uri.EscapeDataString(options.Year)));
 
             var json = this.RequestJson(this.RootWhatCDURI, string.Format(query.ToString()));
-            return JsonConvert.DeserializeObject<Browse>(json);
+            return Deserialize<Browse>(json);
         }
 
         /// <summary>
@@ -364,7 +394,7 @@ namespace WhatCD
         public BookmarksTorrents GetBookmarksTorrents()
         {
             var json = this.RequestJson(this.RootWhatCDURI, "ajax.php?action=bookmarks&type=torrents");
-            return JsonConvert.DeserializeObject<BookmarksTorrents>(json);
+            return Deserialize<BookmarksTorrents>(json);
         }
 
         /// <summary>
@@ -374,7 +404,7 @@ namespace WhatCD
         public BookmarksArtists GetBookmarksArtists()
         {
             var json = this.RequestJson(this.RootWhatCDURI, "ajax.php?action=bookmarks&type=artists");
-            return JsonConvert.DeserializeObject<BookmarksArtists>(json);
+            return Deserialize<BookmarksArtists>(json);
         }
 
         /// <summary>
@@ -383,7 +413,7 @@ namespace WhatCD
         /// </summary>
         /// <param name="artistID">Artist ID.</param>
         /// <returns>JSON response deserialized into Artist object.</returns>
-        public ActionBrowse.Artist GetArtist(uint artistID)
+        public WhatCD.Model.ActionBrowse.Artist GetArtist(int artistID)
         {
             return this.SharedGetArtist(string.Format("ajax.php?action=artist&id={0}", artistID));
         }
@@ -394,15 +424,15 @@ namespace WhatCD
         /// </summary>
         /// <param name="artistName">Artist Name.</param>
         /// <returns>JSON response deserialized into Artist object.</returns>
-        public ActionBrowse.Artist GetArtist(string artistName)
+        public WhatCD.Model.ActionBrowse.Artist GetArtist(string artistName)
         {
             return this.SharedGetArtist(string.Format("ajax.php?action=artist&artistname={0}", Uri.EscapeDataString(artistName)));
         }
 
-        private ActionBrowse.Artist SharedGetArtist(string query)
+        private WhatCD.Model.ActionBrowse.Artist SharedGetArtist(string query)
         {
             var json = this.RequestJson(this.RootWhatCDURI, query);
-            return JsonConvert.DeserializeObject<ActionBrowse.Artist>(json);
+            return Deserialize<WhatCD.Model.ActionBrowse.Artist>(json);
         }
 
         /// <summary>
@@ -411,10 +441,10 @@ namespace WhatCD
         /// </summary>
         /// <param name="groupID">Group ID.</param>
         /// <returns>JSON response deserialized into TorrentGroup object.</returns>
-        public TorrentGroup GetTorrentGroup(uint groupID)
+        public TorrentGroup GetTorrentGroup(int groupID)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=torrentgroup&id={0}", groupID));
-            return JsonConvert.DeserializeObject<TorrentGroup>(json);
+            return Deserialize<TorrentGroup>(json);
         }
 
         /// <summary>
@@ -422,10 +452,11 @@ namespace WhatCD
         /// </summary>
         /// <param name="torrentID">The ID of the torrent to download</param>
         /// <returns>A byte array with the torrent file contents.</returns>
-        public byte[] DownloadTorrent(uint torrentID)
+        public byte[] DownloadTorrent(int torrentID)
         {
             return this.RequestBytes(this.RootWhatCDURI, string.Format("torrents.php?action=download&id={0}", torrentID));
         }
+
 
         // Users
 
@@ -436,10 +467,10 @@ namespace WhatCD
         /// </summary>
         /// <param name="userID">User ID.</param>
         /// <returns>JSON response deserialized into User object.</returns>
-        public User GetUser(uint userID)
+        public User GetUser(int userID)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=user&id={0}", userID));
-            return JsonConvert.DeserializeObject<User>(json);
+            return Deserialize<User>(json);
         }
 
         /// <summary>
@@ -448,10 +479,10 @@ namespace WhatCD
         /// <param name="searchTerm">String to search for.</param>
         /// <param name="page">Results page number.</param>
         /// <returns>JSON response deserialized into UserSearch object.</returns>
-        public UserSearch GetUserSearch(string searchTerm, uint page)
+        public UserSearch GetUserSearch(string searchTerm, int page)
         {
             var json = this.RequestJson(this.RootWhatCDURI, string.Format("ajax.php?action=usersearch&search={0}&page={1}", Uri.EscapeDataString(searchTerm), page));
-            return JsonConvert.DeserializeObject<UserSearch>(json);
+            return Deserialize<UserSearch>(json);
         }
 
         /// <summary>
@@ -494,7 +525,6 @@ namespace WhatCD
             }
         }
 
-
         /// <summary>
         /// Logs off the current session.
         /// </summary>
@@ -506,6 +536,12 @@ namespace WhatCD
 
         // Private
 
+        private T Deserialize<T>(string json)
+        {
+            var settings = new JsonSerializerSettings();
+            settings.MissingMemberHandling = this.ErrorOnMissingMember ? MissingMemberHandling.Error : MissingMemberHandling.Ignore;
+            return JsonConvert.DeserializeObject<T>(json, settings);
+        }
 
         /// <summary>
         /// Logs a user in to What.CD and stores session cookies.

@@ -8,6 +8,8 @@ namespace Tests
     public static class Helper
     {
 
+        private static Random random = new Random((int)DateTime.Now.Ticks);
+
         public static int GetRandomIntFromRange(int smallest, int largest, params int[] exclude)
         {
             var random = new Random();
@@ -33,6 +35,18 @@ namespace Tests
                 if (!Equals(value, GetDefaultValue(property.PropertyType))) return false;
             }
             return true;
+        }
+
+        public static string RandomCharString(int length)
+        {
+            char[] c = new char[length];
+            for (int i = 0; i < length; i++) c[i] = (char)random.Next(97, 122);
+            return new string(c);
+        }
+
+        public static int GetRandomNumberFromRange(int min, int max)
+        {
+            return random.Next(min, max + 1);
         }
 
         private static object GetDefaultValue(Type t)
