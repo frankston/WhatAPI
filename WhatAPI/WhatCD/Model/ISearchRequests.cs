@@ -29,7 +29,7 @@ namespace WhatCD.Model
         bool ShowFilled { get; set; }
 
         /// <summary>
-        /// Tags to search by (comma separated).
+        /// Tags to search for (comma separated).
         /// Optional.
         /// </summary>
         string Tags { get; set; }
@@ -40,6 +40,6 @@ namespace WhatCD.Model
         /// MatchAny = 0
         /// Optional.
         /// </summary>
-        int? TagType { get; set; }
+        int? TagsType { get; set; }
     }
 }

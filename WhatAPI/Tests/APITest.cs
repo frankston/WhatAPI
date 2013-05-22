@@ -24,7 +24,7 @@ namespace Tests
         [ClassInitialize]
         public static void ClassInitialize(TestContext context)
         {
-            Api = new API("yourOwnUsername", "yourOwnPassword") { ErrorOnMissingMember = true };
+            Api = new API("YourUsername", "YourPassword") { ErrorOnMissingMember = true };
         }
 
         [TestMethod]
@@ -443,7 +443,7 @@ namespace Tests
             public int? Page { get; set; }
             public bool ShowFilled { get; set; }
             public string Tags { get; set; }
-            public int? TagType { get; set; }
+            public int? TagsType { get; set; }
         }
 
         private class SearchInbox : IInbox

@@ -18,6 +18,6 @@ namespace WhatCD.Model
         /// If null then default is last page.
         /// Optional.
         /// </summary>
-        uint? CommentPage { get; set; }
+        int? Page { get; set; }
     }
 }
