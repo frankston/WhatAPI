@@ -257,6 +257,16 @@ namespace Tests
         }
 
         [TestMethod]
+        [Description("Verifies GetTop10Torrents method (with a limit of 250) returns successfully and that response object contains at least one non-default property value")]
+        public void GetTop10TorrentsTest_Limit250()
+        {
+            System.Threading.Thread.Sleep(2000);
+            var top10Torrents = Api.GetTop10Torrents(250);
+
+            this.PerformCommonResponseTests(top10Torrents);
+        }
+
+        [TestMethod]
         [Description("Verifies GetTop10Tags method (with a limit of 10) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10TagsTest_Limit10()
         {
@@ -287,6 +297,16 @@ namespace Tests
         }
 
         [TestMethod]
+        [Description("Verifies GetTop10Tags method (with a limit of 250) returns successfully and that response object contains at least one non-default property value")]
+        public void GetTop10TagsTest_Limit250()
+        {
+            System.Threading.Thread.Sleep(2000);
+            var top10Tags = Api.GetTop10Tags(250);
+
+            this.PerformCommonResponseTests(top10Tags);
+        }
+
+        [TestMethod]
         [Description("Verifies GetTop10Users method (with a limit of 10) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10UsersTest_Limit10()
         {
@@ -312,6 +332,16 @@ namespace Tests
         {
             System.Threading.Thread.Sleep(2000);
             var top10Users = Api.GetTop10Users(100);
+
+            this.PerformCommonResponseTests(top10Users);
+        }
+
+        [TestMethod]
+        [Description("Verifies GetTop10Users method (with a limit of 250) returns successfully and that response object contains at least one non-default property value")]
+        public void GetTop10UsersTest_Limit250()
+        {
+            System.Threading.Thread.Sleep(2000);
+            var top10Users = Api.GetTop10Users(250);
 
             this.PerformCommonResponseTests(top10Users);
         }

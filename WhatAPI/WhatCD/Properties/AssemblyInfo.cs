@@ -8,10 +8,10 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("WhatCD")]
 [assembly: AssemblyDescription("C# WhatCD JSON API wrapper")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("User frankston @ WhatCD")]
 [assembly: AssemblyProduct("WhatCD API")]
 [assembly: AssemblyCopyright("Copyright ©  2013")]
-[assembly: AssemblyTrademark("Frankston @ WhatCD")]
+[assembly: AssemblyTrademark("https://github.com/frankston/WhatAPI")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 

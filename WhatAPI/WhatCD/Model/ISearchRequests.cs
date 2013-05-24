@@ -6,7 +6,7 @@ using System.Text;
 namespace WhatCD.Model
 {
     /// <summary>
-    /// Note: If no arguments are specified then the most recent requests are shown.
+    /// Note: Since all properties are optional if no arguments are specified then the most recent requests are shown.
     /// </summary>
     public interface ISearchRequests
     {

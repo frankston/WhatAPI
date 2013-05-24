@@ -31,17 +31,22 @@ using WhatCD.Model.ActionUser;
 using WhatCD.Model.ActionUserSearch;
 using WhatCD.Model.WhatStatus;
 
-// TODO: Test all forums for invalid dates - I know they're out there!
 // TODO: Build in a global timer thread that prevents any call being made to the servers within 2 seconds of any other
 // TODO: make download torrent into class (and capture filename)
 // TODO: method to capture log file contents
-// TODO: Improve comments
 // TODO: Add action=torrents
-// TODO: Move all bug report info and urls into github
 // TODO: Implement json attributes to change model member names to camel casing
+// TODO: Add summary comments for all model properties
 
 namespace WhatCD
 {
+    /// <summary>
+    /// Provides a user-friendly interface to the WhatCD JSON API.
+    /// </summary>
+    /// <remarks>
+    /// https://github.com/frankston/WhatAPI
+    /// https://what.cd/wiki.php?action=article&id=998
+    /// </remarks>
     public class API : IDisposable
     {
 
@@ -231,16 +236,6 @@ namespace WhatCD
         }
 
         /// <summary>
-        /// Gets what.cd site, irc, and tracker status.
-        /// </summary>
-        /// <returns>JSON response deserialized into WhatStatus object.</returns>
-        public Status GetWhatStatus()
-        {
-            var json = this.RequestJson(this.RootWhatStatusURI, "json.php");
-            return Deserialize<Status>(json);
-        }
-
-        /// <summary>
         /// Gets the most recent announcements and blog posts.
         /// </summary>
         /// <returns>JSON response deserialized into Announcements object.</returns>
@@ -252,7 +247,6 @@ namespace WhatCD
 
         /// <summary>
         /// Gets notifications.
-        /// TODO: Issue raised: "currentPages" property should be "currentPage": https://what.cd/forums.php?action=viewthread&threadid=169781
         /// </summary>
         /// <param name="page">Notification page number. Optional.</param>
         /// <returns>JSON response deserialized into Notifications object.</returns>
@@ -266,10 +260,8 @@ namespace WhatCD
 
         /// <summary>
         /// Gets the top torrents.
-        /// TODO: Null Top10 torrents issue raised: https://what.cd/forums.php?action=viewthread&threadid=169763
-        /// TODO: Determine what the default response limit is here.
         /// </summary>
-        /// <param name="limit">Maximum result limit. Acceptable values: 10, 25, and 100. Optional.</param>
+        /// <param name="limit">Maximum result limit. Acceptable values: 10, 25, 100, and 250. Optional. Default is 25.</param>
         /// <returns>JSON response deserialized into Top10Torrents object.</returns>
         public Top10Torrents GetTop10Torrents(int? limit)
         {
@@ -281,9 +273,8 @@ namespace WhatCD
 
         /// <summary>
         /// Gets the top tags.
-        /// TODO: Determine what the default response limit is here.
         /// </summary>
-        /// <param name="limit">Maximum result limit. Acceptable values: 10, 25, and 100. Optional.</param>
+        /// <param name="limit">Maximum result limit. Acceptable values: 10, 25, 100, and 250. Optional. Default is 25.</param>
         /// <returns>JSON response deserialized into Top10Tags object.</returns>
         public Top10Tags GetTop10Tags(int? limit)
         {
@@ -295,10 +286,8 @@ namespace WhatCD
 
         /// <summary>
         /// Gets the top users.
-        /// TODO: Known null return issue raised: https://what.cd/forums.php?action=viewthread&threadid=169763
-        /// TODO: Determine what the default response limit is here.
         /// </summary>
-        /// <param name="limit">Maximum result limit. Acceptable values: 10, 25, and 100. Optional.</param>
+        /// <param name="limit">Maximum result limit. Acceptable values: 10, 25, 100, and 250. Optional. Default is 25.</param>
         /// <returns>JSON response deserialized into Top10Users object.</returns>
         public Top10Users GetTop10Users(int? limit)
         {
@@ -312,7 +301,7 @@ namespace WhatCD
         // Requests
 
         /// <summary>
-        /// TODO: Known issue - MusicInfo object sometimes returning as an empty array: https://what.cd/forums.php?action=viewthread&threadid=169790
+        /// Gets information about a specific request.
         /// </summary>
         /// <param name="options">Object that inherits IGetRequest</param>
         /// <returns>JSON response deserialized into Request object</returns>
@@ -328,7 +317,6 @@ namespace WhatCD
         /// <summary>
         /// Searches requests.
         /// If no arguments are specified then the most recent requests are shown.
-        /// TODO: Known issue - artist array nested in an unnecessary array: https://what.cd/forums.php?action=viewthread&threadid=169787
         /// </summary>
         /// <param name="options">Object that inherits ISearchRequests.</param>
         /// <returns>JSON response deserialized into Requests object.</returns>
@@ -349,7 +337,7 @@ namespace WhatCD
 
         /// <summary>
         /// Gets similar artists.
-        /// TODO: CHECK: Note that the return response from the server is not properly formatted JSON
+        /// Note: the return response from the server does not conform to the standard JSON response pattern.
         /// </summary>
         /// <param name="artistID">Artist ID. Mandatory.</param>
         /// <param name="limit">Maximum result limit. Mandatory.</param>
@@ -424,7 +412,6 @@ namespace WhatCD
 
         /// <summary>
         /// Gets artist information.
-        /// TODO: Known Issue: Only populates similar artists the first time an artist is queried and never again: https://what.cd/forums.php?action=viewthread&threadid=169786 
         /// </summary>
         /// <param name="artistID">Artist ID. Mandatory.</param>
         /// <returns>JSON response deserialized into Artist object.</returns>
@@ -438,7 +425,6 @@ namespace WhatCD
 
         /// <summary>
         /// Gets artist information.
-        /// TODO: Known Issue: Only populates similar artists the first time an artist is queried and never again: https://what.cd/forums.php?action=viewthread&threadid=169786 
         /// </summary>
         /// <param name="artistName">Artist Name. Mandatory.</param>
         /// <returns>JSON response deserialized into Artist object.</returns>
@@ -452,7 +438,6 @@ namespace WhatCD
 
         /// <summary>
         /// Gets a torrent group.
-        /// TODO: Known HTML response issue raised: https://what.cd/forums.php?action=viewthread&threadid=169772
         /// </summary>
         /// <param name="groupID">Group ID. Mandatory.</param>
         /// <returns>JSON response deserialized into TorrentGroup object.</returns>
@@ -481,8 +466,6 @@ namespace WhatCD
 
         /// <summary>
         /// Gets user information.
-        /// TODO: Known null response issue raised: https://what.cd/forums.php?action=viewthread&threadid=169775
-        /// TODO: Known invalid datetime issue: https://what.cd/forums.php?action=viewthread&threadid=169791
         /// </summary>
         /// <param name="userID">User ID. Mandatory.</param>
         /// <returns>JSON response deserialized into User object.</returns>

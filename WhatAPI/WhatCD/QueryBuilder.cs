@@ -30,6 +30,5 @@ namespace WhatCD
             if (value != null) this.Query.Append(string.Format("&{0}={1}", key, (bool)value ? 1 : 0));
         }
 
-
     }
 }

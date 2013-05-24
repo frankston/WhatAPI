@@ -7,8 +7,6 @@ namespace WhatCD.Model.ActionTorrentGroup
 {
     public class TorrentGroup : IResponse<Response>
     {
-        // TODO: Known HTML return issue: https://what.cd/forums.php?action=viewthread&threadid=169772
-
         public string status { get; set; }
         public Response response { get; set; }
 
