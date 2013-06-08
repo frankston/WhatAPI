@@ -12,8 +12,10 @@ namespace WhatCD.Model.ActionArtist
         public int groupYear { get; set; }
         public string groupRecordLabel { get; set; }
         public string groupCatalogueNumber { get; set; }
+        public string groupCategoryID { get; set; }
         public List<string> tags { get; set; }
         public ReleaseType releaseType { get; set; }
+        public string wikiImage { get; set; }
         public bool groupVanityHouse { get; set; }
         public bool hasBookmarked { get; set; }
         public List<Torrent> torrent { get; set; }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Web;
 
 namespace WhatCD
 {
@@ -17,7 +18,7 @@ namespace WhatCD
 
         public void Append(string key, string value)
         {
-            if (!string.IsNullOrWhiteSpace(value)) this.Query.Append(string.Format("&{0}={1}", key, Uri.EscapeDataString(value)));
+            if (!string.IsNullOrWhiteSpace(value)) this.Query.Append(string.Format("&{0}={1}", key, HttpUtility.HtmlEncode(value)));
         }
 
         public void Append(string key, int? value)

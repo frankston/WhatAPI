@@ -26,7 +26,7 @@ namespace WhatCD.Model
         /// Include filled requests in results (default: false).
         /// Optional.
         /// </summary>
-        bool ShowFilled { get; set; }
+        bool? ShowFilled { get; set; }
 
         /// <summary>
         /// Tags to search for (comma separated).

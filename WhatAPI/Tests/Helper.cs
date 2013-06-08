@@ -5,12 +5,12 @@ using System.Text;
 
 namespace Tests
 {
-    public static class Helper
+    internal static class Helper
     {
 
         private static Random random = new Random((int)DateTime.Now.Ticks);
 
-        public static int GetRandomIntFromRange(int smallest, int largest, params int[] exclude)
+        internal static int GetRandomIntFromRange(int smallest, int largest, params int[] exclude)
         {
             var random = new Random();
             while (true)
@@ -20,31 +20,31 @@ namespace Tests
             }
         }
 
-        public static int GetRandomElementFromArray(int[] values)
+        internal static int GetRandomElementFromArray(int[] values)
         {
             var random = new Random();
             return values[random.Next(0, values.Length + 1)];
         }
 
-        public static bool AllPropertiesAreDefaultValues<T>(T classInstance)
+        internal static bool AllPropertiesAreDefaultValues<T>(T classInstance)
         {
             foreach (var property in classInstance.GetType().GetProperties())
             {
                 var name = property.Name;
                 var value = property.GetValue(classInstance, null);
-                if (!Equals(value, GetDefaultValue(property.PropertyType))) return false;
+                if (!AreEqual(value, GetDefaultValue(property.PropertyType))) return false;
             }
             return true;
         }
 
-        public static string RandomCharString(int length)
+        internal static string RandomCharString(int length)
         {
             char[] c = new char[length];
             for (int i = 0; i < length; i++) c[i] = (char)random.Next(97, 122);
             return new string(c);
         }
 
-        public static int GetRandomNumberFromRange(int min, int max)
+        internal static int GetRandomIntFromRange(int min, int max)
         {
             return random.Next(min, max + 1);
         }
@@ -61,7 +61,7 @@ namespace Tests
             }
         }
 
-        private static bool Equals<T>(T a, T b)
+        public static bool AreEqual<T>(T a, T b)
         {
             return EqualityComparer<T>.Default.Equals(a, b);
         }

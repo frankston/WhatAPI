@@ -10,6 +10,7 @@ namespace WhatCD.Model.ActionTorrent
     public class TorrentInfo
     {
         public int id { get; set; }
+        public string infoHash { get; set; }
         public string media { get; set; }
         public string format { get; set; }
         public string encoding { get; set; }
@@ -28,6 +29,7 @@ namespace WhatCD.Model.ActionTorrent
         public int leechers { get; set; }
         public int snatched { get; set; }
         public bool freeTorrent { get; set; }
+        public bool reported { get; set; }
         public string time { get; set; }
         public string description { get; set; }
         public string fileList { get; set; }

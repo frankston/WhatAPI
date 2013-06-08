@@ -18,7 +18,7 @@ namespace WhatCD.Model.ActionBrowse
         public string encoding { get; set; }
         public string format { get; set; }
         public bool hasLog { get; set; }
-        public int logScore { get; set; } // Can be negative value
+        public int logScore { get; set; }
         public bool hasCue { get; set; }
         public bool scene { get; set; }
         public bool vanityHouse { get; set; }

@@ -7,7 +7,7 @@ namespace WhatCD.Model.ActionRequests
 {
     public class Artist
     {
-        public string id { get; set; }
+        public int id { get; set; }
         public string name { get; set; }
 
         public override string ToString()

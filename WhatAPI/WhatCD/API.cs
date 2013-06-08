@@ -30,12 +30,12 @@ using WhatCD.Model.ActionTorrentGroup;
 using WhatCD.Model.ActionUser;
 using WhatCD.Model.ActionUserSearch;
 using WhatCD.Model.WhatStatus;
+using System.Threading;
+using Newtonsoft.Json.Linq;
 
-// TODO: Build in a global timer thread that prevents any call being made to the servers within 2 seconds of any other
 // TODO: make download torrent into class (and capture filename)
 // TODO: method to capture log file contents
-// TODO: Add action=torrents
-// TODO: Implement json attributes to change model member names to camel casing
+// TODO: Implement json attributes to change model member name casing
 // TODO: Add summary comments for all model properties
 
 namespace WhatCD
@@ -44,13 +44,13 @@ namespace WhatCD
     /// Provides a user-friendly interface to the WhatCD JSON API.
     /// </summary>
     /// <remarks>
-    /// https://github.com/frankston/WhatAPI
-    /// https://what.cd/wiki.php?action=article&id=998
+    /// Home: https://github.com/frankston/WhatAPI
+    /// JSON API Reference: https://what.cd/wiki.php?action=article&id=998
     /// </remarks>
     public class API : IDisposable
     {
 
-        private Uri rootWhatStatusURI = new Uri("http://whatstatus.info");
+        private Uri rootWhatStatusURI = new Uri("https://whatstatus.info");
         public Uri RootWhatStatusURI
         {
             get { return this.rootWhatStatusURI; }
@@ -76,6 +76,13 @@ namespace WhatCD
         /// This is primarily intended to be used with unit testing.
         /// </summary>
         public bool ErrorOnMissingMember { get; set; }
+        
+        /// <summary>
+        /// Automatically set to true if any calls have been made to the WhatCD server within the last two seconds
+        /// </summary>
+        private static bool CountdownInProgress = false;
+
+        private static object HttpLocker = new object();
 
         /// <summary>
         /// Logs the user on to what.cd.
@@ -159,6 +166,41 @@ namespace WhatCD
             builder.Append("page", page);
             var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
             return Deserialize<ForumViewForum>(json);
+        }
+
+        /// <summary>
+        /// Gets information about a particular torrent.
+        /// </summary>
+        /// <param name="id">ID of torrent. Mandatory.</param>
+        /// <returns>JSON response deserialized into ActionTorrent.Torrent object.</returns>
+        public WhatCD.Model.ActionTorrent.Torrent GetTorrent(int id)
+        {
+            var builder = new QueryBuilder("ajax.php?action=torrent");
+            builder.Append("id", id);
+            return GetTorrent(builder);
+        }
+
+        /// <summary>
+        /// Gets information about a particular torrent.
+        /// </summary>
+        /// <param name="hash">Hash of torrent. Mandatory.</param>
+        /// <returns>JSON response deserialized into ActionTorrent.Torrent object.</returns>
+        public WhatCD.Model.ActionTorrent.Torrent GetTorrent(string hash)
+        {
+            var builder = new QueryBuilder("ajax.php?action=torrent");
+            builder.Append("hash", hash);
+            return GetTorrent(builder);
+        }
+
+        /// <summary>
+        /// Gets information about a particular torrent.
+        /// </summary>
+        /// <param name="builder">QueryBuilder object with either a torrent hash or id argument.</param>
+        /// <returns>JSON response deserialized into ActionTorrent.Torrent object.</returns>
+        private WhatCD.Model.ActionTorrent.Torrent GetTorrent(QueryBuilder builder)
+        {
+            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            return Deserialize<WhatCD.Model.ActionTorrent.Torrent>(json);
         }
 
         /// <summary>
@@ -348,6 +390,8 @@ namespace WhatCD
             builder.Append("id", artistID);
             builder.Append("limit", limit);
             var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            // Because similar artists results do not conform to the standard reply we have to be dodgy so it can be deserialised
+            if (!string.IsNullOrWhiteSpace(json)) json = string.Format("{{\"artists\":{0}}}", json);
             return Deserialize<SimilarArtists>(json);
         }
 
@@ -358,7 +402,7 @@ namespace WhatCD
         /// <returns>JSON response deserialized into Browse object.</returns>
         public Browse GetBrowse(ISearchTorrents options)
         {
-            var builder = new QueryBuilder("ajax.php?action=browse&action=advanced");
+            var builder = new QueryBuilder("ajax.php?action=browse");
             builder.Append("artistname", options.ArtistName);
             builder.Append("cataloguenumber", options.CatalogueNumber);
             builder.Append("encoding", options.Encoding);
@@ -415,12 +459,12 @@ namespace WhatCD
         /// </summary>
         /// <param name="artistID">Artist ID. Mandatory.</param>
         /// <returns>JSON response deserialized into Artist object.</returns>
-        public WhatCD.Model.ActionBrowse.Artist GetArtist(int artistID)
+        public WhatCD.Model.ActionArtist.Artist GetArtist(int artistID)
         {
             var builder = new QueryBuilder("ajax.php?action=artist");
             builder.Append("id", artistID);
             var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
-            return Deserialize<WhatCD.Model.ActionBrowse.Artist>(json);
+            return Deserialize<WhatCD.Model.ActionArtist.Artist>(json);
         }
 
         /// <summary>
@@ -428,12 +472,12 @@ namespace WhatCD
         /// </summary>
         /// <param name="artistName">Artist Name. Mandatory.</param>
         /// <returns>JSON response deserialized into Artist object.</returns>
-        public WhatCD.Model.ActionBrowse.Artist GetArtist(string artistName)
+        public WhatCD.Model.ActionArtist.Artist GetArtist(string artistName)
         {
             var builder = new QueryBuilder("ajax.php?action=artist");
             builder.Append("artistname", artistName);
             var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
-            return Deserialize<WhatCD.Model.ActionBrowse.Artist>(json);
+            return Deserialize<WhatCD.Model.ActionArtist.Artist>(json);
         }
 
         /// <summary>
@@ -557,17 +601,31 @@ namespace WhatCD
         /// <param name="password">What.CD account password.</param>
         private void Login(string username, string password)
         {
-            var request = WebRequest.Create(new Uri(this.RootWhatCDURI, "login.php")) as HttpWebRequest;
-            request.Method = "POST";
-            request.ContentType = "application/x-www-form-urlencoded";
-            request.CookieContainer = this.CookieJar;
-            using (var writer = new StreamWriter(request.GetRequestStream()))
+            HttpWebResponse response = null;
+
+            try
             {
-                writer.Write(string.Format("username={0}&password={1}", Uri.EscapeDataString(username), Uri.EscapeDataString(password)));
+                Monitor.TryEnter(HttpLocker);
+                WaitUntilCountdownComplete();
+
+                var request = WebRequest.Create(new Uri(this.RootWhatCDURI, "login.php")) as HttpWebRequest;
+                request.Method = "POST";
+                request.ContentType = "application/x-www-form-urlencoded";
+                request.CookieContainer = this.CookieJar;
+                using (var writer = new StreamWriter(request.GetRequestStream()))
+                {
+                    writer.Write(string.Format("username={0}&password={1}", Uri.EscapeDataString(username), Uri.EscapeDataString(password)));
+                }
+                response = request.GetResponse() as HttpWebResponse;
+                if (response.StatusCode != HttpStatusCode.OK) throw new WebException(string.Format("Non-OK HTTP status returned. Status code {0}: {1}", response.StatusCode, response.StatusDescription));
+                response.Close();
             }
-            var response = request.GetResponse() as HttpWebResponse;
-            if (response.StatusCode != HttpStatusCode.OK) throw new WebException(string.Format("Non-OK HTTP status returned. Status code {0}: {1}", response.StatusCode, response.StatusDescription));
-            response.Close();
+            finally
+            {
+                if (response != null) response.Close();
+                ActivateCountdown();
+                Monitor.Exit(HttpLocker);
+            }
         }
 
         /// <summary>
@@ -580,8 +638,12 @@ namespace WhatCD
         {
             HttpWebResponse response = null;
             string json;
+
             try
             {
+                Monitor.TryEnter(HttpLocker);
+                WaitUntilCountdownComplete();
+
                 var request = WebRequest.Create(new Uri(uri, query)) as HttpWebRequest;
                 request.ContentType = "application/json; charset=utf-8";
                 request.CookieContainer = this.CookieJar;
@@ -590,17 +652,21 @@ namespace WhatCD
                 {
                     if (response.StatusCode != HttpStatusCode.OK) throw new WebException(string.Format("Non-OK HTTP status returned. Status code {0}: {1}", response.StatusCode, response.StatusDescription));
                     json = reader.ReadToEnd();
+
+                    // Throw exception if response is standard error format
+                    var error = new Regex(@"^\{""status"":""failure"",""error"":""(?<Error>.+)""\}", RegexOptions.IgnoreCase).Matches(json);
+                    if (error.Count > 0) throw new Exception(error[0].Groups["Error"].Value.ToString().Trim());
+
+                    return json;
                 }
+
             }
             finally
             {
                 if (response != null) response.Close();
+                ActivateCountdown();
+                Monitor.Exit(HttpLocker);
             }
-            // Throw exception if response is of standard error format
-            var error = new Regex(@"^\{""status"":""failure"",""error"":""(?<Error>.+)""\}", RegexOptions.IgnoreCase).Matches(json);
-            if (error.Count > 0) throw new Exception(error[0].Groups["Error"].Value.ToString().Trim());
-
-            return json;
         }
 
         /// <summary>
@@ -611,6 +677,9 @@ namespace WhatCD
             HttpWebResponse response = null;
             try
             {
+                Monitor.TryEnter(HttpLocker);
+                WaitUntilCountdownComplete();
+
                 var request = WebRequest.Create(new Uri(this.RootWhatCDURI, string.Format("logout.php?auth={0}", this.GetIndex().response.authkey))) as HttpWebRequest;
                 request.Method = "POST";
                 request.ContentType = "application/x-www-form-urlencoded";
@@ -621,6 +690,8 @@ namespace WhatCD
             finally
             {
                 if (response != null) response.Close();
+                ActivateCountdown();
+                Monitor.Exit(HttpLocker);
             }
         }
 
@@ -635,6 +706,9 @@ namespace WhatCD
             HttpWebResponse response = null;
             try
             {
+                Monitor.TryEnter(HttpLocker);
+                WaitUntilCountdownComplete();
+
                 var request = WebRequest.Create(new Uri(uri, query)) as HttpWebRequest;
                 request.ContentType = "application/json; charset=utf-8";
                 request.CookieContainer = this.CookieJar;
@@ -654,7 +728,32 @@ namespace WhatCD
             finally
             {
                 if (response != null) response.Close();
+                ActivateCountdown();
+                Monitor.Exit(HttpLocker);
             }
         }
+
+        private static void WaitUntilCountdownComplete()
+        {
+            while (CountdownInProgress)
+            {
+                System.Threading.Thread.Sleep(100);
+            }
+        }
+
+        private static void ActivateCountdown()
+        {
+            CountdownInProgress = true;
+            var countDownThread = new System.Threading.Thread(new ThreadStart(Locker));
+            countDownThread.Start();
+        }
+
+        private static void Locker()
+        {
+            System.Threading.Thread.Sleep(2000);
+            CountdownInProgress = false;
+        }
+
+
     }
 }
