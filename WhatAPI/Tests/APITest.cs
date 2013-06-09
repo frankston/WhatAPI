@@ -541,11 +541,95 @@ namespace Tests
             }
         }
 
-        // TODO: GetTorrentGroup
+        [TestMethod]
+        [Description("Executes GetTorrentGroup against all request artists returned from a randomly selected single page of a request search")]
+        public void GetTorrentGroupTest()
+        {
+            // Get first pages of requests
+            SearchRequests searchArgs = new SearchRequests() { ShowFilled = true };
+            var requests = Api.GetRequests(searchArgs);
+            this.PerformCommonResponseTests(requests);
 
-        // TODO: DownloadTorrent
+            // Pick a random page from the pages
+            var pageRange = Helper.GetRandomIntFromRange(1, requests.response.pages);
 
-        // TODO: GetUser
+            // Build distinct artist list
+            var artists = requests.response.results.Select(x => x.artists.Count > 0 ? HttpUtility.HtmlDecode(x.artists[0][0].name) : "").Where(c => string.IsNullOrWhiteSpace(c) == false).Distinct().ToList();
+
+            // Iterate through all artists on the page
+            for (int i = 0; i < artists.Count(); i++)
+            {
+                // Get artist
+                var artist = Api.GetArtist(artists[i]);
+                this.PerformCommonResponseTests(artist, "artist id: " + artists[i]);
+                TestContext.WriteLine("Artist '{0}' ({1} of {2}) pass ok.", artists[i], i, artists.Count() - 1);
+
+                // Get torrent group(s)
+                for (int j = 0; j < artist.response.torrentGroup.Count; j++)
+                {
+                    var groups = Api.GetTorrentGroup(artist.response.torrentGroup[j].groupId);
+                    this.PerformCommonResponseTests(groups, "group id: " + artist.response.torrentGroup[j].groupId);
+                }
+
+            }
+        }
+
+
+        [TestMethod]
+        [Description("Downloads all torrent files from a random selection of torrents from a random and broad torrent search")]
+        public void DownloadTorrentTest()
+        {
+            var searchDetails = new SearchTorrents() { GroupName = Helper.RandomCharString(1) };
+            var browse = Api.GetBrowse(searchDetails);
+            this.PerformCommonResponseTests(browse);
+            TestContext.WriteLine("Call to search for all torrents with name '{0}' complete", searchDetails.GroupName);
+
+            // Select random page from results
+            searchDetails.Page = Helper.GetRandomIntFromRange(1, browse.response.pages);
+            var randomPagebrowse = Api.GetBrowse(searchDetails);
+
+            // Select random range from the results on the random page
+            var rangeDef = new RangeSelector(1, randomPagebrowse.response.results.Count, MAX_RANDOM_RANGE_SIZE);
+
+            // Loop through random result range
+            for (int i = rangeDef.RandomRangeStart; i < rangeDef.RandomRangeEnd; i++)
+            {
+                if (randomPagebrowse.response.results[i].torrents != null)
+                {
+                    // Loop through all torrents in each result
+                    for (int j = 0; j < randomPagebrowse.response.results[i].torrents.Count; j++)
+                    {
+                        var torrent = Api.DownloadTorrent(randomPagebrowse.response.results[i].torrents[j].torrentId);
+                        Assert.IsTrue(torrent != null && torrent.Length > 0, "Torrent download data is null or empty");
+                        TestContext.WriteLine("Torrent id {0} on result page {1} downloaded ok.", randomPagebrowse.response.results[i].torrents[j].torrentId, searchDetails.Page);
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        [Description("Tests the GetUser method by iterating through a page of users as a result of performing a random GetUserSearch query")]
+        public void GetUserTest()
+        {
+            // Search for a single letter
+            string searchTerm = Helper.RandomCharString(1);
+            var users = Api.GetUserSearch(searchTerm, null);
+            this.PerformCommonResponseTests(users, searchTerm);
+
+            // Pick a random page from the pages
+            var userPage = Helper.GetRandomIntFromRange(1, users.response.pages);
+
+            // Get page of users
+            var usersPage = Api.GetUserSearch(searchTerm, userPage);
+
+            // Iterate through random page of users
+            for (int i = 0; i < usersPage.response.results.Count(); i++)
+            {
+                var user = Api.GetUser(usersPage.response.results[i].userId);
+                this.PerformCommonResponseTests(user);
+                TestContext.WriteLine("User {0} on page {1} pass ok (testing {2} of {3} users).", usersPage.response.results[i].userId, userPage, i + 1, usersPage.response.results.Count());
+            }
+        }
 
         [TestMethod]
         [Description("Performs a random and broad user-search then verifies a randomly selected range of pages validate successfully")]

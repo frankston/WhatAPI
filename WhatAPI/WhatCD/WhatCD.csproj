@@ -173,6 +173,7 @@
     <Compile Include="Model\WhatStatus\Status.cs" />
     <Compile Include="Model\WhatStatus\Uptime.cs" />
     <Compile Include="QueryBuilder.cs" />
+    <Compile Include="Http.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Newtonsoft.Json.dll">

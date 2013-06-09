@@ -19,6 +19,7 @@ namespace WhatCD.Model.ActionTorrentGroup
         public string categoryName { get; set; }
         public DateTime time { get; set; }
         public bool vanityHouse { get; set; }
+        public bool isBookmarked { get; set; }
         public MusicInfo musicInfo { get; set; }
 
         public override string ToString()

@@ -1,13 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Security;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Web;
 using Newtonsoft.Json;
 using WhatCD.Model;
 using WhatCD.Model.ActionAnnouncements;
@@ -30,13 +24,18 @@ using WhatCD.Model.ActionTorrentGroup;
 using WhatCD.Model.ActionUser;
 using WhatCD.Model.ActionUserSearch;
 using WhatCD.Model.WhatStatus;
-using System.Threading;
-using Newtonsoft.Json.Linq;
 
 // TODO: make download torrent into class (and capture filename)
-// TODO: method to capture log file contents
+// TODO: Make common test methods for getting list of usernames, user ids, torrent ids etc - whatever is used most frequently
+// TODO: method to capture log file contents (and check if it exists first)
+// TODO: test method to validate log checking
+// TODO: fix GetForumViewForumTest to be more robust and not have a predefined 'working' list of forum ids
+// TODO: fix whatstatus issues
+// TODO: do a readme!
+// TODO: create another class for Http.PerformWebRequest method
 // TODO: Implement json attributes to change model member name casing
 // TODO: Add summary comments for all model properties
+// TODO: Double check all escape and unescape locations
 
 namespace WhatCD
 {
@@ -50,25 +49,20 @@ namespace WhatCD
     public class API : IDisposable
     {
 
-        private Uri rootWhatStatusURI = new Uri("https://whatstatus.info");
-        public Uri RootWhatStatusURI
+        private Http http;
+
+        public string AuthKey { get; private set; }
+
+        public Uri RootWhatStatusUri
         {
-            get { return this.rootWhatStatusURI; }
-            set { this.rootWhatStatusURI = value; }
+            get { return this.http.BaseWhatStatusUri; }
+            set { this.http.BaseWhatStatusUri = value; }
         }
 
-        private Uri rootWhatCDURI = new Uri("https://what.cd");
-        public Uri RootWhatCDURI
+        public Uri RootWhatCDUri
         {
-            get { return this.rootWhatCDURI; }
-            set { this.rootWhatCDURI = value; }
-        }
-
-        private CookieContainer cookieJar = new CookieContainer();
-        public CookieContainer CookieJar
-        {
-            get { return this.cookieJar; }
-            private set { this.cookieJar = value; }
+            get { return this.http.BaseWhatCDUri; }
+            set { this.http.BaseWhatCDUri = value; }
         }
 
         /// <summary>
@@ -77,12 +71,6 @@ namespace WhatCD
         /// </summary>
         public bool ErrorOnMissingMember { get; set; }
         
-        /// <summary>
-        /// Automatically set to true if any calls have been made to the WhatCD server within the last two seconds
-        /// </summary>
-        private static bool CountdownInProgress = false;
-
-        private static object HttpLocker = new object();
 
         /// <summary>
         /// Logs the user on to what.cd.
@@ -91,7 +79,8 @@ namespace WhatCD
         /// <param name="password">What.cd password.</param>
         public API(string username, string password)
         {
-            this.Login(username, password);
+            this.http = new Http(username, password);
+            this.AuthKey = this.GetIndex().response.authkey;
         }
 
 
@@ -103,7 +92,7 @@ namespace WhatCD
         /// <returns>JSON response deserialized into Status object.</returns>
         public Status GetStatus()
         {
-            var json = this.RequestJson(this.RootWhatStatusURI, "api/status");
+            var json = this.http.RequestJson(this.RootWhatStatusUri, "api/status");
             return Deserialize<Status>(json);
         }
 
@@ -113,7 +102,7 @@ namespace WhatCD
         /// <returns>JSON response deserialized into Uptime object.</returns>
         public Uptime GetUptime()
         {
-            var json = this.RequestJson(this.RootWhatStatusURI, "api/uptime");
+            var json = this.http.RequestJson(this.RootWhatStatusUri, "api/uptime");
             return Deserialize<Uptime>(json);
         }
 
@@ -123,7 +112,7 @@ namespace WhatCD
         /// <returns>JSON response deserialized into Records object.</returns>
         public Records GetRecords()
         {
-            var json = this.RequestJson(this.RootWhatStatusURI, "api/records");
+            var json = this.http.RequestJson(this.RootWhatStatusUri, "api/records");
             return Deserialize<Records>(json);
         }
 
@@ -139,7 +128,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=subscriptions");
             builder.Append("showunread", onlyShowUnread);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<Subscriptions>(json);
         }
 
@@ -149,7 +138,7 @@ namespace WhatCD
         /// <returns>JSON response deserialized into ForumMain object.</returns>
         public ForumMain GetForumMain()
         {
-            var json = this.RequestJson(this.RootWhatCDURI, "ajax.php?action=forum&type=main");
+            var json = this.http.RequestJson(this.RootWhatCDUri, "ajax.php?action=forum&type=main");
             return Deserialize<ForumMain>(json);
         }
 
@@ -164,7 +153,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=forum&type=viewforum");
             builder.Append("forumid", forumID);
             builder.Append("page", page);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<ForumViewForum>(json);
         }
 
@@ -177,7 +166,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=torrent");
             builder.Append("id", id);
-            return GetTorrent(builder);
+            return this.GetTorrent(builder);
         }
 
         /// <summary>
@@ -189,7 +178,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=torrent");
             builder.Append("hash", hash);
-            return GetTorrent(builder);
+            return this.GetTorrent(builder);
         }
 
         /// <summary>
@@ -199,7 +188,7 @@ namespace WhatCD
         /// <returns>JSON response deserialized into ActionTorrent.Torrent object.</returns>
         private WhatCD.Model.ActionTorrent.Torrent GetTorrent(QueryBuilder builder)
         {
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<WhatCD.Model.ActionTorrent.Torrent>(json);
         }
 
@@ -214,7 +203,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=forum&type=viewthread");
             builder.Append("threadid", threadID);
             builder.Append("page", page);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<ForumViewThread>(json);
         }
 
@@ -227,7 +216,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=forum&type=viewthread");
             builder.Append("postid", postID);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<ForumViewThread>(json);
         }
 
@@ -247,7 +236,7 @@ namespace WhatCD
             builder.Append("page", options.Page);
             builder.Append("search", options.SearchTerm);
             builder.Append("searchtype", options.SearchType);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<Inbox>(json);
         }
 
@@ -260,7 +249,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=inbox&type=viewconv");
             builder.Append("id", conversationID);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<InboxViewConv>(json);
         }
 
@@ -273,7 +262,7 @@ namespace WhatCD
         /// <returns>JSON response deserialized into Index object.</returns>
         public Index GetIndex()
         {
-            var json = this.RequestJson(this.RootWhatCDURI, "ajax.php?action=index");
+            var json = this.http.RequestJson(this.RootWhatCDUri, "ajax.php?action=index");
             return Deserialize<Index>(json);
         }
 
@@ -283,7 +272,7 @@ namespace WhatCD
         /// <returns>JSON response deserialized into Announcements object.</returns>
         public Announcements GetAnnouncements()
         {
-            var json = this.RequestJson(this.RootWhatCDURI, "ajax.php?action=announcements");
+            var json = this.http.RequestJson(this.RootWhatCDUri, "ajax.php?action=announcements");
             return Deserialize<Announcements>(json);
         }
 
@@ -296,7 +285,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=notifications");
             builder.Append("page", page);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<WhatCD.Model.ActionNotifications.Notifications>(json);
         }
 
@@ -309,7 +298,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=top10&type=torrents");
             builder.Append("limit", limit);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<Top10Torrents>(json);
         }
 
@@ -322,7 +311,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=top10&type=tags");
             builder.Append("limit", limit);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<Top10Tags>(json);
         }
 
@@ -335,7 +324,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=top10&type=users");
             builder.Append("limit", limit);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<Top10Users>(json);
         }
 
@@ -352,7 +341,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=request");
             builder.Append("id", options.RequestID);
             builder.Append("page", options.Page);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<WhatCD.Model.ActionRequest.Request>(json);
         }
 
@@ -370,7 +359,7 @@ namespace WhatCD
             builder.Append("page", options.Page);
             builder.Append("tag", options.Tags);
             builder.Append("search", options.SearchTerm);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<Requests>(json);
         }
 
@@ -389,7 +378,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=similar_artists");
             builder.Append("id", artistID);
             builder.Append("limit", limit);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             // Because similar artists results do not conform to the standard reply we have to be dodgy so it can be deserialised
             if (!string.IsNullOrWhiteSpace(json)) json = string.Format("{{\"artists\":{0}}}", json);
             return Deserialize<SimilarArtists>(json);
@@ -430,7 +419,7 @@ namespace WhatCD
             builder.Append("vanityhouse", options.VanityHouse);
             builder.Append("year", options.Year);
 
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<Browse>(json);
         }
 
@@ -440,7 +429,7 @@ namespace WhatCD
         /// <returns>JSON response deserialized into BookmarksTorrents object.</returns>
         public BookmarksTorrents GetBookmarksTorrents()
         {
-            var json = this.RequestJson(this.RootWhatCDURI, "ajax.php?action=bookmarks&type=torrents");
+            var json = this.http.RequestJson(this.RootWhatCDUri, "ajax.php?action=bookmarks&type=torrents");
             return Deserialize<BookmarksTorrents>(json);
         }
 
@@ -450,7 +439,7 @@ namespace WhatCD
         /// <returns>JSON response deserialized into BookmarksArtists object.</returns>
         public BookmarksArtists GetBookmarksArtists()
         {
-            var json = this.RequestJson(this.RootWhatCDURI, "ajax.php?action=bookmarks&type=artists");
+            var json = this.http.RequestJson(this.RootWhatCDUri, "ajax.php?action=bookmarks&type=artists");
             return Deserialize<BookmarksArtists>(json);
         }
 
@@ -463,7 +452,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=artist");
             builder.Append("id", artistID);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<WhatCD.Model.ActionArtist.Artist>(json);
         }
 
@@ -476,7 +465,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=artist");
             builder.Append("artistname", artistName);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<WhatCD.Model.ActionArtist.Artist>(json);
         }
 
@@ -489,7 +478,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=torrentgroup");
             builder.Append("id", groupID);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<TorrentGroup>(json);
         }
 
@@ -502,7 +491,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("torrents.php?action=download");
             builder.Append("id", torrentID);
-            return this.RequestBytes(this.RootWhatCDURI, builder.Query.ToString());
+            return this.http.RequestBytes(this.RootWhatCDUri, builder.Query.ToString());
         }
 
 
@@ -517,7 +506,7 @@ namespace WhatCD
         {
             var builder = new QueryBuilder("ajax.php?action=user");
             builder.Append("id", userID);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<User>(json);
         }
 
@@ -532,7 +521,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=usersearch");
             builder.Append("search", searchTerm);
             builder.Append("page", page);
-            var json = this.RequestJson(this.RootWhatCDURI, builder.Query.ToString());
+            var json = this.http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             return Deserialize<UserSearch>(json);
         }
 
@@ -543,37 +532,7 @@ namespace WhatCD
         /// <returns>Score out of 100.</returns>
         public int GetFlacLogScore(string log)
         {
-            HttpWebResponse response = null;
-            try
-            {
-                log = HttpUtility.UrlEncode(log);
-                var request = WebRequest.Create(new Uri(this.RootWhatCDURI, "logchecker.php")) as HttpWebRequest;
-                request.Method = "POST";
-                request.ContentType = "application/x-www-form-urlencoded";
-                request.CookieContainer = this.CookieJar;
-
-                using (var writer = new StreamWriter(request.GetRequestStream()))
-                {
-                    writer.Write("action=takeupload&auth={0}&log_contents={1}", this.GetIndex().response.authkey, log);
-                }
-                response = request.GetResponse() as HttpWebResponse;
-                using (var reader = new StreamReader(response.GetResponseStream()))
-                {
-                    if (response.StatusCode != HttpStatusCode.OK) throw new WebException(string.Format("Non-OK HTTP status returned. Status code {0}: {1}", response.StatusCode, response.StatusDescription));
-
-                    var regex = new Regex(@">(?<score>[-\d]+)</span> \(out of 100\)</blockquote>");
-                    var htmlResponse = reader.ReadToEnd();
-                    var matches = regex.Matches(htmlResponse);
-                    if (matches.Count != 1) throw new WebException("Score not found");
-                    int score;
-                    if (!int.TryParse(matches[0].Groups["score"].Value.ToString(), out score)) throw new Exception("Failed to convert score to int.");
-                    return score;
-                }
-            }
-            finally
-            {
-                response.Close();
-            }
+            return this.http.GetFlacLogScore(log, this.AuthKey);
         }
 
         /// <summary>
@@ -581,7 +540,7 @@ namespace WhatCD
         /// </summary>
         public void Dispose()
         {
-            this.Logoff();
+            this.http.Logoff(this.AuthKey);
         }
 
 
@@ -593,167 +552,6 @@ namespace WhatCD
             settings.MissingMemberHandling = this.ErrorOnMissingMember ? MissingMemberHandling.Error : MissingMemberHandling.Ignore;
             return JsonConvert.DeserializeObject<T>(json, settings);
         }
-
-        /// <summary>
-        /// Logs a user in to What.CD and stores session cookies.
-        /// </summary>
-        /// <param name="username">What.CD account username.</param>
-        /// <param name="password">What.CD account password.</param>
-        private void Login(string username, string password)
-        {
-            HttpWebResponse response = null;
-
-            try
-            {
-                Monitor.TryEnter(HttpLocker);
-                WaitUntilCountdownComplete();
-
-                var request = WebRequest.Create(new Uri(this.RootWhatCDURI, "login.php")) as HttpWebRequest;
-                request.Method = "POST";
-                request.ContentType = "application/x-www-form-urlencoded";
-                request.CookieContainer = this.CookieJar;
-                using (var writer = new StreamWriter(request.GetRequestStream()))
-                {
-                    writer.Write(string.Format("username={0}&password={1}", Uri.EscapeDataString(username), Uri.EscapeDataString(password)));
-                }
-                response = request.GetResponse() as HttpWebResponse;
-                if (response.StatusCode != HttpStatusCode.OK) throw new WebException(string.Format("Non-OK HTTP status returned. Status code {0}: {1}", response.StatusCode, response.StatusDescription));
-                response.Close();
-            }
-            finally
-            {
-                if (response != null) response.Close();
-                ActivateCountdown();
-                Monitor.Exit(HttpLocker);
-            }
-        }
-
-        /// <summary>
-        /// Performs a JSON request. 
-        /// </summary>
-        /// <param name="uri">Base URI.</param>
-        /// <param name="query">Request arguments (appended to end of base URI).</param>
-        /// <returns>Raw Json results.</returns>
-        private string RequestJson(Uri uri, string query)
-        {
-            HttpWebResponse response = null;
-            string json;
-
-            try
-            {
-                Monitor.TryEnter(HttpLocker);
-                WaitUntilCountdownComplete();
-
-                var request = WebRequest.Create(new Uri(uri, query)) as HttpWebRequest;
-                request.ContentType = "application/json; charset=utf-8";
-                request.CookieContainer = this.CookieJar;
-                response = request.GetResponse() as HttpWebResponse;
-                using (var reader = new StreamReader(response.GetResponseStream()))
-                {
-                    if (response.StatusCode != HttpStatusCode.OK) throw new WebException(string.Format("Non-OK HTTP status returned. Status code {0}: {1}", response.StatusCode, response.StatusDescription));
-                    json = reader.ReadToEnd();
-
-                    // Throw exception if response is standard error format
-                    var error = new Regex(@"^\{""status"":""failure"",""error"":""(?<Error>.+)""\}", RegexOptions.IgnoreCase).Matches(json);
-                    if (error.Count > 0) throw new Exception(error[0].Groups["Error"].Value.ToString().Trim());
-
-                    return json;
-                }
-
-            }
-            finally
-            {
-                if (response != null) response.Close();
-                ActivateCountdown();
-                Monitor.Exit(HttpLocker);
-            }
-        }
-
-        /// <summary>
-        /// Logs off the current What.CD session.
-        /// </summary>
-        private void Logoff()
-        {
-            HttpWebResponse response = null;
-            try
-            {
-                Monitor.TryEnter(HttpLocker);
-                WaitUntilCountdownComplete();
-
-                var request = WebRequest.Create(new Uri(this.RootWhatCDURI, string.Format("logout.php?auth={0}", this.GetIndex().response.authkey))) as HttpWebRequest;
-                request.Method = "POST";
-                request.ContentType = "application/x-www-form-urlencoded";
-                request.CookieContainer = this.CookieJar;
-                response = request.GetResponse() as HttpWebResponse;
-                using (var reader = new StreamReader(response.GetResponseStream())) { }
-            }
-            finally
-            {
-                if (response != null) response.Close();
-                ActivateCountdown();
-                Monitor.Exit(HttpLocker);
-            }
-        }
-
-        /// <summary>
-        /// Performs a binary request. 
-        /// </summary>
-        /// <param name="uri">Base URI.</param>
-        /// <param name="query">Request arguments (appended to end of base URI).</param>
-        /// <returns>Raw binary results.</returns>
-        private byte[] RequestBytes(Uri uri, string query)
-        {
-            HttpWebResponse response = null;
-            try
-            {
-                Monitor.TryEnter(HttpLocker);
-                WaitUntilCountdownComplete();
-
-                var request = WebRequest.Create(new Uri(uri, query)) as HttpWebRequest;
-                request.ContentType = "application/json; charset=utf-8";
-                request.CookieContainer = this.CookieJar;
-                response = request.GetResponse() as HttpWebResponse;
-                using (var stream = response.GetResponseStream())
-                {
-                    var result = new MemoryStream();
-                    var buffer = new byte[4096];
-                    int read;
-                    while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
-                    {
-                        result.Write(buffer, 0, read);
-                    }
-                    return result.ToArray();
-                }
-            }
-            finally
-            {
-                if (response != null) response.Close();
-                ActivateCountdown();
-                Monitor.Exit(HttpLocker);
-            }
-        }
-
-        private static void WaitUntilCountdownComplete()
-        {
-            while (CountdownInProgress)
-            {
-                System.Threading.Thread.Sleep(100);
-            }
-        }
-
-        private static void ActivateCountdown()
-        {
-            CountdownInProgress = true;
-            var countDownThread = new System.Threading.Thread(new ThreadStart(Locker));
-            countDownThread.Start();
-        }
-
-        private static void Locker()
-        {
-            System.Threading.Thread.Sleep(2000);
-            CountdownInProgress = false;
-        }
-
 
     }
 }
