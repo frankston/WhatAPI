@@ -7,6 +7,7 @@ using System.Threading;
 using System.Web;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace WhatCD
 {
@@ -234,24 +235,15 @@ namespace WhatCD
 
         /// <summary>
         /// Ensures queries to the WhatCD server do not occur more frequently than is allowed (based on the minimum query delay value).
-        /// Initiates a separate thread to sleep for the designated minimum query time.
         /// </summary>
         private static void ActivateCountdown()
         {
             CountdownInProgress = true;
-            var countDownThread = new System.Threading.Thread(new ThreadStart(Locker));
-            countDownThread.Start();
+            Task.Factory.StartNew(() =>
+                {
+                    System.Threading.Thread.Sleep(2000);
+                    CountdownInProgress = false;
+                });
         }
-
-        /// <summary>
-        /// Sleeps for the designated minimum query delay.
-        /// Completion is indicated by the the designated countdown progress variable value.
-        /// </summary>
-        private static void Locker()
-        {
-            System.Threading.Thread.Sleep(2000);
-            CountdownInProgress = false;
-        }
-
     }
 }

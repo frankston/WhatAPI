@@ -25,7 +25,6 @@ using WhatCD.Model.ActionUser;
 using WhatCD.Model.ActionUserSearch;
 using WhatCD.Model.WhatStatus;
 
-// TODO: make download torrent into class (and capture filename)
 // TODO: Make common test methods for getting list of usernames, user ids, torrent ids etc - whatever is used most frequently
 // TODO: method to capture log file contents (and check if it exists first)
 // TODO: test method to validate log checking
@@ -36,6 +35,16 @@ using WhatCD.Model.WhatStatus;
 // TODO: Implement json attributes to change model member name casing
 // TODO: Add summary comments for all model properties
 // TODO: Double check all escape and unescape locations
+// TODO: Add settings file with main values
+
+// TODO: make download torrent into class (and capture filename). Response sample:
+//HTTP/1.1 200 OK
+//Server: nginx/1.4.1
+//Date: Sun, 09 Jun 2013 06:27:24 GMT
+//Content-Type: application/x-bittorrent; charset=utf-8
+//Content-Disposition: attachment; filename="FNFN - fnessnej - 2013 (CD - FLAC - Lossless).torrent"
+//Strict-Transport-Security: max-age=15768000
+//X-Firefox-Spdy: 2
 
 namespace WhatCD
 {
