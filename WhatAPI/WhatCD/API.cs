@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WhatCD.Model;
 using WhatCD.Model.ActionAnnouncements;
@@ -25,18 +27,15 @@ using WhatCD.Model.ActionUser;
 using WhatCD.Model.ActionUserSearch;
 using WhatCD.Model.WhatStatus;
 
-// TODO: Make common test methods for getting list of usernames, user ids, torrent ids etc - whatever is used most frequently
+// TODO: create integration tests for random class
 // TODO: method to capture log file contents (and check if it exists first)
 // TODO: test method to validate log checking
-// TODO: fix GetForumViewForumTest to be more robust and not have a predefined 'working' list of forum ids
-// TODO: fix whatstatus issues
 // TODO: do a readme!
 // TODO: create another class for Http.PerformWebRequest method
 // TODO: Implement json attributes to change model member name casing
 // TODO: Add summary comments for all model properties
 // TODO: Double check all escape and unescape locations
-// TODO: Add settings file with main values
-
+// TODO: Make all setting values properties
 // TODO: make download torrent into class (and capture filename). Response sample:
 //HTTP/1.1 200 OK
 //Server: nginx/1.4.1
@@ -55,7 +54,7 @@ namespace WhatCD
     /// Home: https://github.com/frankston/WhatAPI
     /// JSON API Reference: https://what.cd/wiki.php?action=article&id=998
     /// </remarks>
-    public class API : IDisposable
+    public class Api : IDisposable
     {
 
         private Http http;
@@ -76,18 +75,23 @@ namespace WhatCD
 
         /// <summary>
         /// If set to true then the deserialization process will raise an exception if any JSON members exist that do not exist in the model data.
-        /// This is primarily intended to be used with unit testing.
+        /// This is primarily intended to be used with integration testing.
         /// </summary>
         public bool ErrorOnMissingMember { get; set; }
-        
+
 
         /// <summary>
         /// Logs the user on to what.cd.
         /// </summary>
         /// <param name="username">What.cd username.</param>
         /// <param name="password">What.cd password.</param>
-        public API(string username, string password)
+        public Api(string username, string password)
         {
+            TaskScheduler.UnobservedTaskException += (s, e) =>
+                {
+                    Debug.WriteLine("Unobserved task scheduler exception: " + e.Exception.Message);
+                    e.SetObserved();
+                };
             this.http = new Http(username, password);
             this.AuthKey = this.GetIndex().response.authkey;
         }

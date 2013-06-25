@@ -30,6 +30,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>What.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -56,6 +59,7 @@
     <Compile Include="Model\ActionArtist\Tag.cs" />
     <Compile Include="Model\ActionArtist\Torrent.cs" />
     <Compile Include="Model\ActionArtist\TorrentGroup.cs" />
+    <Compile Include="Model\ActionArtist\TorrentGroupArtist.cs" />
     <Compile Include="Model\ActionBookmarks\TypeArtists\Artist.cs" />
     <Compile Include="Model\ActionBookmarks\TypeArtists\Response.cs" />
     <Compile Include="Model\ActionBookmarks\TypeTorrents\Bookmark.cs" />
@@ -138,7 +142,7 @@
     <Compile Include="Model\ActionUser\Ranks.cs" />
     <Compile Include="Model\ActionUser\Response.cs" />
     <Compile Include="Model\ActionUser\Stats.cs" />
-    <Compile Include="API.cs" />
+    <Compile Include="Api.cs" />
     <Compile Include="Model\ActionAnnouncements\Announcements.cs" />
     <Compile Include="Model\ActionArtist\Artist.cs" />
     <Compile Include="Model\ActionBookmarks\TypeArtists\BookmarksArtists.cs" />
@@ -174,11 +178,13 @@
     <Compile Include="Model\WhatStatus\Uptime.cs" />
     <Compile Include="QueryBuilder.cs" />
     <Compile Include="Http.cs" />
+    <Compile Include="Random.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Newtonsoft.Json.dll">
+    <None Include="Newtonsoft.Json.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    </None>
+    <EmbeddedResource Include="What.ico" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

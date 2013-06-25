@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Tests")]
-[assembly: AssemblyDescription("Unit Tests for the C# WhatCD JSON API wrapper")]
+[assembly: AssemblyDescription("Integration Tests for the C# WhatCD JSON API wrapper")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("User frankston @ WhatCD")]
 [assembly: AssemblyProduct("Tests")]

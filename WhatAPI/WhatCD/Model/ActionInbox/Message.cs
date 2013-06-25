@@ -15,6 +15,7 @@ namespace WhatCD.Model.ActionInbox
         public string forwardedName { get; set; }
         public int senderId { get; set; }
         public string username { get; set; }
+        public string avatar { get; set; }
         public bool donor { get; set; }
         public bool warned { get; set; }
         public bool enabled { get; set; }

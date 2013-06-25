@@ -55,8 +55,7 @@
   <ItemGroup>
     <Compile Include="Helper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="APITest.cs" />
-    <Compile Include="RangeSelector.cs" />
+    <Compile Include="ApiTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WhatCD\WhatCD.csproj">

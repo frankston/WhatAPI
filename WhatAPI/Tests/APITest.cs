@@ -14,10 +14,11 @@ using System.Web;
 namespace Tests
 {
     [TestClass]
-    public class APITest
+    public class ApiTest
     {
 
-        private static API Api;
+        private static Api Api;
+        private static WhatCD.Random WhatRandom;
         private const int MAX_RANDOM_RANGE_SIZE = 20;
 
         public TestContext TestContext { get; set; }
@@ -25,11 +26,11 @@ namespace Tests
         [ClassInitialize]
         public static void ClassInitialize(TestContext context)
         {
-            Api = new API("YourUsername", "YourPassword") { ErrorOnMissingMember = true };
+            Api = new Api("YourUsername", "YourPassword") { ErrorOnMissingMember = true };
+            WhatRandom = new WhatCD.Random(Api);
         }
 
         [TestMethod]
-        [Description("Verifies GetSubscriptions method returns successfully and that response object contains at least one non-default property value")]
         public void GetSubscriptionsTest()
         {
             var subscriptions = Api.GetSubscriptions(true);
@@ -37,7 +38,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetForumMain method returns successfully and that response object contains at least one non-default property value")]
         public void GetForumMainTest()
         {
             var forumMain = Api.GetForumMain();
@@ -45,76 +45,68 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetForumViewForum method returns successfully and that response object contains at least one non-default property value. Walks all available pages")]
         public void GetForumViewForumTest()
         {
-            int[] validForumIDs = new int[] { 7, 8, 9, 10, 12, 13, 14, 15, 17, 18, 19, 20, 23, 25, 26, 27, 29, 32, 36, 37, 40, 43, 45, 55, 56, 61, 62, 63, 65 };
-            var forumID = Helper.GetRandomElementFromArray(validForumIDs);
+            var forumID = WhatRandom.GetForumId();
 
-            TestContext.WriteLine("Forum ID: " + forumID);
+            // First page
+            TestContext.WriteLine("Requesting and testing page {0} of forum ID {1}...", 1, forumID);
+            var forumPage1 = Api.GetForumViewForum(forumID, 1);
+            this.PerformCommonResponseTests(forumPage1);
+            TestContext.WriteLine("Passed.");
 
-            int currentPage = 0;
-            int totalPages;
-            // TODO: Make this loop a separate method
-            do
+            // Random page
+            if (forumPage1.response.pages > 1)
             {
-                currentPage++;
-                var forum = Api.GetForumViewForum(forumID, currentPage);
-
-                this.PerformCommonResponseTests(forum, string.Format("forum id: {0}, page: {1}", forumID, currentPage));
-
-                totalPages = forum.response.pages;
-                TestContext.WriteLine("Page {0} of {1} pass ok.", currentPage, totalPages);
-
-            } while (currentPage != totalPages);
+                var page = WhatCD.Random.GetRandomIntFromRange(2, forumPage1.response.pages);
+                TestContext.WriteLine("Requesting and testing (random) page {0} of forum ID {1}...", page, forumID);
+                var forumPageX = Api.GetForumViewForum(forumID, page);
+                this.PerformCommonResponseTests(forumPageX);
+                TestContext.WriteLine("Passed.");
+            }
         }
 
         [TestMethod]
-        [Description("Verifies ForumViewForumThread method returns successfully with a random forum ID between 2000 and 65000 and walks all available pages within the specific forum")]
         public void GetForumViewThreadTest()
         {
-            var forumID = Helper.GetRandomIntFromRange(2000, 65000);
-            TestContext.WriteLine("Forum ID: " + forumID);
+            var threadId = WhatRandom.GetForumThreadId();
 
-            int currentPage = 0;
-            int totalPages;
+            // First page
+            TestContext.WriteLine("Requesting and testing page {0} of thread ID {1}...", 1, threadId);
+            var threadPage1 = Api.GetForumViewThread(threadId, 1);
+            this.PerformCommonResponseTests(threadPage1);
+            TestContext.WriteLine("Passed.");
 
-            do
+            // Random page
+            if (threadPage1.response.pages > 1)
             {
-                currentPage++;
-                var forum = Api.GetForumViewThread(forumID, currentPage);
-
-                this.PerformCommonResponseTests(forum, string.Format("forum id: {0}, page: {1}", forumID, currentPage));
-
-                totalPages = forum.response.pages;
-                TestContext.WriteLine("Page {0} of {1} pass ok.", currentPage, totalPages);
-
-            } while (currentPage != totalPages);
+                var page = WhatCD.Random.GetRandomIntFromRange(2, threadPage1.response.pages);
+                TestContext.WriteLine("Requesting and testing (random) page {0} of thread ID {1}...", page, threadId);
+                var threadPageX = Api.GetForumViewThread(threadId, page);
+                this.PerformCommonResponseTests(threadPageX);
+                TestContext.WriteLine("Passed.");
+            }
         }
 
         [TestMethod]
-        [Description("Verifies GetInbox method returns successfully. Tests all pages of messages in the inbox.")]
         public void GetInboxTest_Inbox()
         {
             this.InboxAndConversationCommon(new SearchInbox() { MessageType = "inbox" }, false);
         }
 
         [TestMethod]
-        [Description("Verifies GetInbox method returns successfully. Tests all pages of messages in the sentbox.")]
         public void GetInboxTest_Sentbox()
         {
             this.InboxAndConversationCommon(new SearchInbox() { MessageType = "sentbox" }, false);
         }
 
         [TestMethod]
-        [Description("Verifies GetInboxViewConv method returns successfully. Tests all conversations within all pages of messages in the inbox.")]
         public void GetInboxViewConvTest_Inbox()
         {
             this.InboxAndConversationCommon(new SearchInbox() { MessageType = "inbox" }, true);
         }
 
         [TestMethod]
-        [Description("Verifies GetInboxViewConv method returns successfully. Tests all conversations within all pages of messages in the sentbox.")]
         public void GetInboxViewConvTest_Sentbox()
         {
             this.InboxAndConversationCommon(new SearchInbox() { MessageType = "sentbox" }, true);
@@ -122,35 +114,38 @@ namespace Tests
 
         private void InboxAndConversationCommon(SearchInbox searchOptions, bool viewConversation)
         {
-            int totalPages;
-            searchOptions.Page = 0;
 
-            do
+            // First page
+            TestContext.WriteLine("Requesting and testing page {0} of {1}...", 1, searchOptions.MessageType);
+            searchOptions.Page = 1;
+            var inboxPage1 = Api.GetInbox(searchOptions);
+            this.PerformCommonResponseTests(inboxPage1);
+            TestContext.WriteLine("Passed.");
+
+            // Random page
+            if (inboxPage1.response.pages > 1)
             {
-                searchOptions.Page++;
-                var inbox = Api.GetInbox(searchOptions);
+                searchOptions.Page = WhatCD.Random.GetRandomIntFromRange(2, inboxPage1.response.pages);
+                TestContext.WriteLine("Requesting and testing (random) page {0} of {1}...", searchOptions.Page, searchOptions.MessageType);
+                var inboxPageX = Api.GetInbox(searchOptions);
+                this.PerformCommonResponseTests(inboxPageX);
+                TestContext.WriteLine("Passed.");
+            }
 
-                this.PerformCommonResponseTests(inbox);
-
-                totalPages = inbox.response.pages;
-                TestContext.WriteLine("{0} page {1} of {2} pass ok.", searchOptions.MessageType, searchOptions.Page, totalPages);
-
-                if (viewConversation)
+            // Conversations
+            if (viewConversation)
+            {
+                for (int i = 0; i < inboxPage1.response.messages.Count; i++)
                 {
-                    for (int i = 0; i < inbox.response.messages.Count; i++)
-                    {
-                        System.Threading.Thread.Sleep(2000);
-                        var conversation = Api.GetInboxViewConv(inbox.response.messages[i].convId);
-                        this.PerformCommonResponseTests(conversation);
-                        TestContext.WriteLine("{0} conversation {1} of {2} pass ok.", searchOptions.MessageType, i + 1, inbox.response.messages.Count);
-                    }
+                    TestContext.WriteLine("Requesting and testing conversation {0} of {1}...", i + 1, inboxPage1.response.messages.Count);
+                    var conversation = Api.GetInboxViewConv(inboxPage1.response.messages[i].convId);
+                    this.PerformCommonResponseTests(conversation);
+                    TestContext.WriteLine("Passed.");
                 }
-
-            } while (searchOptions.Page != totalPages);
+            }
         }
 
         [TestMethod]
-        [Description("Verifies GetIndex method returns successfully and that response object contains at least one non-default property value")]
         public void GetIndexTest()
         {
             var index = Api.GetIndex();
@@ -158,7 +153,7 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetStatus method returns a non-null object")]
+
         public void GetStatusTest()
         {
             var status = Api.GetStatus();
@@ -166,7 +161,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetUptime method returns a non-null object")]
         public void GetUptimeTest()
         {
             var uptime = Api.GetUptime();
@@ -174,7 +168,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetRecords method returns a non-null object")]
         public void GetRecordsTest()
         {
             var records = Api.GetRecords();
@@ -182,7 +175,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetAnnouncements method returns successfully and that response object contains at least one non-default property value")]
         public void GetAnnouncementsTest()
         {
             var announcements = Api.GetAnnouncements();
@@ -190,27 +182,26 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetNotifications method returns successfully and that response object contains at least one non-default property value. Walks all available pages")]
         public void GetNotificationsTest()
         {
-            int currentPage = 0;
-            int totalPages;
+            // First page
+            TestContext.WriteLine("Requesting and testing notifications page {0}...", 1);
+            var notificationsPage1 = Api.GetNotifications(1);
+            this.PerformCommonResponseTests(notificationsPage1);
+            TestContext.WriteLine("Passed.");
 
-            do
+            // Random page
+            if (notificationsPage1.response.pages > 1)
             {
-                currentPage++;
-                var notifications = Api.GetNotifications(currentPage);
-
-                this.PerformCommonResponseTests(notifications);
-
-                totalPages = notifications.response.pages;
-                TestContext.WriteLine("Page {0} of {1} pass ok.", currentPage, totalPages);
-
-            } while (currentPage != totalPages);
+                var page = WhatCD.Random.GetRandomIntFromRange(2, notificationsPage1.response.pages);
+                TestContext.WriteLine("Requesting and testing notifications page {0} of {1}...", page, notificationsPage1.response.pages);
+                var notificationsPageX = Api.GetNotifications(page);
+                this.PerformCommonResponseTests(notificationsPageX);
+                TestContext.WriteLine("Passed.");
+            }
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Torrents method (with a limit of 10) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10TorrentsTest_Limit10()
         {
             var top10Torrents = Api.GetTop10Torrents(10);
@@ -218,7 +209,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Torrents method (with a limit of 25) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10TorrentsTest_Limit25()
         {
             var top10Torrents = Api.GetTop10Torrents(25);
@@ -226,7 +216,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Torrents method (with a limit of 100) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10TorrentsTest_Limit100()
         {
             var top10Torrents = Api.GetTop10Torrents(100);
@@ -234,7 +223,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Torrents method (with a limit of 250) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10TorrentsTest_Limit250()
         {
             var top10Torrents = Api.GetTop10Torrents(250);
@@ -242,7 +230,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Tags method (with a limit of 10) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10TagsTest_Limit10()
         {
             var top10Tags = Api.GetTop10Tags(10);
@@ -250,7 +237,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Tags method (with a limit of 25) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10TagsTest_Limit25()
         {
             var top10Tags = Api.GetTop10Tags(25);
@@ -258,7 +244,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Tags method (with a limit of 100) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10TagsTest_Limit100()
         {
             var top10Tags = Api.GetTop10Tags(100);
@@ -266,7 +251,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Tags method (with a limit of 250) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10TagsTest_Limit250()
         {
             var top10Tags = Api.GetTop10Tags(250);
@@ -274,7 +258,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Users method (with a limit of 10) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10UsersTest_Limit10()
         {
             var top10Users = Api.GetTop10Users(10);
@@ -282,7 +265,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Users method (with a limit of 25) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10UsersTest_Limit25()
         {
             var top10Users = Api.GetTop10Users(25);
@@ -290,7 +272,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Users method (with a limit of 100) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10UsersTest_Limit100()
         {
             var top10Users = Api.GetTop10Users(100);
@@ -298,7 +279,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetTop10Users method (with a limit of 250) returns successfully and that response object contains at least one non-default property value")]
         public void GetTop10UsersTest_Limit250()
         {
             var top10Users = Api.GetTop10Users(250);
@@ -306,158 +286,73 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Performs a random broad search for torrents, selects a random page from the results and calls the GetTorrent method for each torrent (from a random range segment) and validates the response")]
         public void GetTorrentTest_ById()
         {
-            var searchDetails = new SearchTorrents() { GroupName = Helper.RandomCharString(1) };
-            var browse = Api.GetBrowse(searchDetails);
-            this.PerformCommonResponseTests(browse);
-            TestContext.WriteLine("Call to search for all torrents with name '{0}' complete", searchDetails.GroupName);
-
-            // Select random page from results
-            searchDetails.Page = Helper.GetRandomIntFromRange(1, browse.response.pages);
-            var randomPagebrowse = Api.GetBrowse(searchDetails);
-
-            // Select random range from the results on the random page
-            var rangeDef = new RangeSelector(1, randomPagebrowse.response.results.Count, MAX_RANDOM_RANGE_SIZE);
-
-            // TODO: Calulate total number of torrents that will be tested (for TestContext output)
-
-            // Loop through random result range
-            for (int i = rangeDef.RandomRangeStart; i < rangeDef.RandomRangeEnd; i++)
-            {
-                if (randomPagebrowse.response.results[i].torrents != null)
-                {
-                    // Loop through all torrents in each result
-                    for (int j = 0; j < randomPagebrowse.response.results[i].torrents.Count; j++)
-                    {
-                        var getTorrent = Api.GetTorrent(randomPagebrowse.response.results[i].torrents[j].torrentId);
-                        this.PerformCommonResponseTests(getTorrent);
-                        TestContext.WriteLine("Torrent id {0} on result page {1} pass ok.", randomPagebrowse.response.results[i].torrents[j].torrentId, searchDetails.Page);
-                    }
-                }
-            }
+            TestContext.WriteLine("Finding random torrent ID...");
+            var torrentID = WhatRandom.GetTorrentId();
+            TestContext.WriteLine("Done. Found random torrent ID ({0}). Getting torrent information...", torrentID);
+            var torrent = Api.GetTorrent(torrentID);
+            this.PerformCommonResponseTests(torrent);
+            TestContext.WriteLine("Passed.");
         }
 
         [TestMethod]
-        [Description("Performs a random broad search for torrents, selects a random page from the results and calls the GetTorrent method for each torrent (from a random range segment) and validates the response")]
         public void GetTorrentTest_ByHash()
         {
-            var searchDetails = new SearchTorrents() { GroupName = Helper.RandomCharString(1) };
-            var browse = Api.GetBrowse(searchDetails);
-            this.PerformCommonResponseTests(browse);
-            TestContext.WriteLine("Call to search for all torrents with name '{0}' complete", searchDetails.GroupName);
-
-            // Select random page from results
-            searchDetails.Page = Helper.GetRandomIntFromRange(1, browse.response.pages);
-            var randomPagebrowse = Api.GetBrowse(searchDetails);
-
-            // Select random range from the results on the random page
-            var rangeDef = new RangeSelector(1, randomPagebrowse.response.results.Count, MAX_RANDOM_RANGE_SIZE);
-
-            // Loop through random result range
-            for (int i = rangeDef.RandomRangeStart; i < rangeDef.RandomRangeEnd; i++)
-            {
-                if (randomPagebrowse.response.results[i].torrents != null)
-                {
-                    // Loop through all torrents in each result
-                    for (int j = 0; j < randomPagebrowse.response.results[i].torrents.Count; j++)
-                    {
-                        // First we must get the torrent by ID as the result will have the torrents hash
-                        var torrentById = Api.GetTorrent(randomPagebrowse.response.results[i].torrents[j].torrentId);
-                        this.PerformCommonResponseTests(torrentById);
-                        TestContext.WriteLine("Get torrent (by id) {0} on result page {1} pass ok.", randomPagebrowse.response.results[i].torrents[j].torrentId, searchDetails.Page);
-
-                        var torrentByHash = Api.GetTorrent(torrentById.response.torrent.infoHash);
-                        this.PerformCommonResponseTests(torrentById);
-                        TestContext.WriteLine("Get torrent (by hash) {0} on result page {1} pass ok.", torrentById.response.torrent.infoHash, searchDetails.Page);
-
-                        Assert.IsTrue(Helper.AreEqual<string>(torrentById.response.torrent.description, torrentByHash.response.torrent.description), "Torrent descriptions are different between objects returned by GetTorrent by ID and GetTorrent by hash");
-                    }
-                }
-            }
+            TestContext.WriteLine("Finding random torrent hash...");
+            var torrentHash = WhatRandom.GetTorrentHash();
+            TestContext.WriteLine("Done. Found random torrent hash ({0}). Getting torrent information...", torrentHash);
+            var torrent = Api.GetTorrent(torrentHash);
+            this.PerformCommonResponseTests(torrent);
+            TestContext.WriteLine("Passed.");
         }
 
         [TestMethod]
-        [Description("Verifies that a randomly selected range of request pages validate successfully")]
         public void GetRequestsTest()
         {
-            // Get first pages of requests
-            SearchRequests searchArgs = new SearchRequests() { ShowFilled = true };
-            var requests = Api.GetRequests(searchArgs);
+            TestContext.WriteLine("Finding random page of requests...");
+            var requests = WhatRandom.GetRequests();
+            TestContext.WriteLine("Done. Randomly selected requests page {0}. Validating requests page...", requests.response.currentPage);
             this.PerformCommonResponseTests(requests);
-
-            // Define a random page range
-            var rangeDef = new RangeSelector(1, requests.response.pages, MAX_RANDOM_RANGE_SIZE);
-
-            // Loop through page range
-            for (int i = rangeDef.RandomRangeStart; i < rangeDef.RandomRangeEnd; i++)
-            {
-                searchArgs.Page = i;
-                var requestsPage = Api.GetRequests(searchArgs);
-                this.PerformCommonResponseTests(requestsPage);
-                TestContext.WriteLine("Page {0} of {1} pass ok (testing {2} pages in total).", i, requests.response.pages, rangeDef.ActualSegmentSize);
-             }
+            TestContext.WriteLine("Passed.");
         }
 
         [TestMethod]
-        [Description("Verifies GetSimilarArtists method returns artists for random torrents returned by GetRequests")]
         public void GetSimilarArtistsTest()
         {
-
-            // Get first pages of requests
-            SearchRequests searchArgs = new SearchRequests() { ShowFilled = true };
-            var requests = Api.GetRequests(searchArgs);
-            this.PerformCommonResponseTests(requests);
-
-            // Pick a random page from the pages
-            var pageRange = Helper.GetRandomIntFromRange(1, requests.response.pages);
-
-            // Build distinct artist ID list
-            var artists = requests.response.results.Select(x => x.artists.Count > 0 ? x.artists[0][0].id : (int?)null).Where(c => c != null && c > 0).Distinct().ToList();
-
-            // Iterate through all artists on the page
-            for (int i = 0; i < artists.Count(); i++)
+            TestContext.WriteLine("Finding random artist that has similar artists...");
+            var artist = WhatRandom.GetIdOfArtistThatHasSimilarArtists();
+            TestContext.WriteLine("Done. ID of artist that has similar artists is {0}. Validating similar artists...", artist);
+            var similarArtists = Api.GetSimilarArtists(artist, 100);
+            for (int i = 0; i < similarArtists.artists.Count; i++)
             {
-                var similarArtists = Api.GetSimilarArtists((int)artists[i], 100);
-                if (similarArtists.artists != null) // Some artists have no similar artists
-                {
-                    for (int j = 0; j < similarArtists.artists.Count; j++)
-                    {
-                        if (similarArtists.artists.Count > 0)
-                        {
-                            Assert.IsFalse(Helper.AllPropertiesAreDefaultValues(similarArtists.artists[j]), "Similar artist ({0}) info is null", similarArtists.artists[j]);
-                        }
-                    }
-                }
-
-                TestContext.WriteLine("Artist '{0}' ({1} of {2}) pass ok.", artists[i], i, artists.Count() - 1);
+                Assert.IsFalse(Helper.AllPropertiesAreDefaultValues(similarArtists.artists[i]), "Similar artist ({0}) info is null", similarArtists.artists[i]);
             }
+            TestContext.WriteLine("Passed.");
         }
 
         [TestMethod]
-        [Description("Performs a random broad search for torrents, selects a random range of pages from the results and loads and validates each page within the range")]
         public void GetBrowseTest()
         {
-            var searchDetails = new SearchTorrents() { GroupName = Helper.RandomCharString(1) };
-            var browse = Api.GetBrowse(searchDetails);
-            this.PerformCommonResponseTests(browse);
+            // First page
+            var browseOptions = new SearchTorrents() { GroupName = WhatCD.Random.RandomCharString(1) };
+            TestContext.WriteLine("Requesting and testing browse page {0} of GroupName search criteria '{1}'...", 1, browseOptions.GroupName);
+            var browsePage1 = Api.GetBrowse(browseOptions);
+            this.PerformCommonResponseTests(browsePage1);
+            TestContext.WriteLine("Passed.");
 
-            // Define a random range of pages to parse
-            var rangeDef = new RangeSelector(1, browse.response.pages, MAX_RANDOM_RANGE_SIZE);
-
-            // Iterate through random page range
-            for (int i = rangeDef.RandomRangeStart; i < rangeDef.RandomRangeEnd; i++)
+            // Random page
+            if (browsePage1.response.pages > 1)
             {
-                searchDetails.Page = i;
-                var getBrowsePage = Api.GetBrowse(searchDetails);
-                this.PerformCommonResponseTests(getBrowsePage);
-                TestContext.WriteLine("Page {0} of {1} pass ok (testing {2} pages in total).", i, getBrowsePage.response.pages, rangeDef.ActualSegmentSize);
+                browseOptions.Page = WhatCD.Random.GetRandomIntFromRange(2, browsePage1.response.pages);
+                TestContext.WriteLine("Requesting and testing browse page {0} of {1}...", browseOptions.Page, browsePage1.response.pages);
+                var browsePageX = Api.GetBrowse(browseOptions);
+                this.PerformCommonResponseTests(browsePageX);
+                TestContext.WriteLine("Passed.");
             }
         }
 
         [TestMethod]
-        [Description("Verifies GetBookmarksTorrents method returns successfully and that response object contains at least one non-default property value")]
         public void GetBookmarksTorrentsTest()
         {
             var bookmarksTorrents = Api.GetBookmarksTorrents();
@@ -465,7 +360,6 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetBookmarksArtists method returns successfully and that response object contains at least one non-default property value")]
         public void GetBookmarksArtistsTest()
         {
             var bookmarksArtists = Api.GetBookmarksArtists();
@@ -473,209 +367,94 @@ namespace Tests
         }
 
         [TestMethod]
-        [Description("Verifies GetArtist method returns an artist based on random torrents returned by a GetRequests search")]
         public void GetArtistTest_ByName()
         {
-            // TODO: This code should work but does not. Not all artists returned from GetBrowse are valid WhatCD artists...
-
-            //var searchDetails = new SearchTorrents() {  ArtistName = Helper.RandomCharString(1) };
-            //var browse = Api.GetBrowse(searchDetails);
-            //this.PerformCommonResponseTests(browse);
-
-            //// Pick a random page from the pages
-            //var pageRange = Helper.GetRandomIntFromRange(1, browse.response.pages);
-
-            //// Build distinct artist list
-            //var artists = browse.response.results.Select(x => HttpUtility.HtmlDecode(x.artist)).Distinct().ToList();
-
-            //// Iterate through all artists on the page
-            //for (int i = 0; i < artists.Count(); i++)
-            //{
-            //    var artist = Api.GetArtist(artists[i]);
-            //    this.PerformCommonResponseTests(artist, artists[i]);
-            //    TestContext.WriteLine("Artist '{0}' ({1} of {2}) pass ok.", artists[i], i, browse.response.results.Count());
-            //}
-
-            // Get first pages of requests
-            SearchRequests searchArgs = new SearchRequests() { ShowFilled = true };
-            var requests = Api.GetRequests(searchArgs);
-            this.PerformCommonResponseTests(requests);
-
-            // Pick a random page from the pages
-            var pageRange = Helper.GetRandomIntFromRange(1, requests.response.pages);
-
-            // Build distinct artist list
-            var artists = requests.response.results.Select(x => x.artists.Count > 0 ? HttpUtility.HtmlDecode(x.artists[0][0].name) : "").Where(c => c != null).Distinct().ToList();
-
-            // Iterate through all artists on the page
-            for (int i = 0; i < artists.Count(); i++)
-            {
-                var artist = Api.GetArtist(artists[i]);
-                this.PerformCommonResponseTests(artist, artists[i]);
-                TestContext.WriteLine("Artist '{0}' ({1} of {2}) pass ok.", artists[i], i, artists.Count() - 1);
-            }
+            TestContext.WriteLine("Searching for random artist name...");
+            var artistName = WhatRandom.GetArtistName();
+            TestContext.WriteLine("Done. Found artist '{0}'. Requesting and validating artist information...", artistName);
+            var artist = Api.GetArtist(artistName);
+            this.PerformCommonResponseTests(artist);
+            TestContext.WriteLine("Passed.");
         }
 
         [TestMethod]
-        [Description("Verifies GetArtist method returns an artist based on random torrents returned by a GetRequests search")]
         public void GetArtistTest_ById()
         {
-
-            // Get first pages of requests
-            SearchRequests searchArgs = new SearchRequests() { ShowFilled = true };
-            var requests = Api.GetRequests(searchArgs);
-            this.PerformCommonResponseTests(requests);
-
-            // Pick a random page from the pages
-            var pageRange = Helper.GetRandomIntFromRange(1, requests.response.pages);
-
-            // Build distinct artist list
-            var artists = requests.response.results.Select(x => x.artists.Count > 0 ? x.artists[0][0].id : (int?)null).Where(c => c != null).Distinct().ToList();
-
-            // Iterate through all artists on the page
-            for (int i = 0; i < artists.Count(); i++)
-            {
-                var artist = Api.GetArtist((int)artists[i]);
-                this.PerformCommonResponseTests(artist, artists[i].ToString());
-                TestContext.WriteLine("Artist '{0}' ({1} of {2}) pass ok.", artists[i], i, artists.Count() - 1);
-            }
+            TestContext.WriteLine("Searching for random artist id...");
+            var artistId = WhatRandom.GetArtistId();
+            TestContext.WriteLine("Done. Found artist id '{0}'. Requesting and validating artist information...", artistId);
+            var artist = Api.GetArtist(artistId);
+            this.PerformCommonResponseTests(artist);
+            TestContext.WriteLine("Passed.");
         }
 
         [TestMethod]
-        [Description("Executes GetTorrentGroup against all request artists returned from a randomly selected single page of a request search")]
         public void GetTorrentGroupTest()
         {
-            // Get first pages of requests
-            SearchRequests searchArgs = new SearchRequests() { ShowFilled = true };
-            var requests = Api.GetRequests(searchArgs);
-            this.PerformCommonResponseTests(requests);
-
-            // Pick a random page from the pages
-            var pageRange = Helper.GetRandomIntFromRange(1, requests.response.pages);
-
-            // Build distinct artist list
-            var artists = requests.response.results.Select(x => x.artists.Count > 0 ? HttpUtility.HtmlDecode(x.artists[0][0].name) : "").Where(c => string.IsNullOrWhiteSpace(c) == false).Distinct().ToList();
-
-            // Iterate through all artists on the page
-            for (int i = 0; i < artists.Count(); i++)
-            {
-                // Get artist
-                var artist = Api.GetArtist(artists[i]);
-                this.PerformCommonResponseTests(artist, "artist id: " + artists[i]);
-                TestContext.WriteLine("Artist '{0}' ({1} of {2}) pass ok.", artists[i], i, artists.Count() - 1);
-
-                // Get torrent group(s)
-                for (int j = 0; j < artist.response.torrentGroup.Count; j++)
-                {
-                    var groups = Api.GetTorrentGroup(artist.response.torrentGroup[j].groupId);
-                    this.PerformCommonResponseTests(groups, "group id: " + artist.response.torrentGroup[j].groupId);
-                }
-
-            }
+            TestContext.WriteLine("Searching for random group id...");
+            var groupId = WhatRandom.GetGroupId();
+            TestContext.WriteLine("Done. Found group id '{0}'. Requesting and validating group information...", groupId);
+            var groups = Api.GetTorrentGroup(groupId);
+            this.PerformCommonResponseTests(groups);
+            TestContext.WriteLine("Passed.");
         }
 
-
         [TestMethod]
-        [Description("Downloads all torrent files from a random selection of torrents from a random and broad torrent search")]
         public void DownloadTorrentTest()
         {
-            var searchDetails = new SearchTorrents() { GroupName = Helper.RandomCharString(1) };
-            var browse = Api.GetBrowse(searchDetails);
-            this.PerformCommonResponseTests(browse);
-            TestContext.WriteLine("Call to search for all torrents with name '{0}' complete", searchDetails.GroupName);
-
-            // Select random page from results
-            searchDetails.Page = Helper.GetRandomIntFromRange(1, browse.response.pages);
-            var randomPagebrowse = Api.GetBrowse(searchDetails);
-
-            // Select random range from the results on the random page
-            var rangeDef = new RangeSelector(1, randomPagebrowse.response.results.Count, MAX_RANDOM_RANGE_SIZE);
-
-            // Loop through random result range
-            for (int i = rangeDef.RandomRangeStart; i < rangeDef.RandomRangeEnd; i++)
-            {
-                if (randomPagebrowse.response.results[i].torrents != null)
-                {
-                    // Loop through all torrents in each result
-                    for (int j = 0; j < randomPagebrowse.response.results[i].torrents.Count; j++)
-                    {
-                        var torrent = Api.DownloadTorrent(randomPagebrowse.response.results[i].torrents[j].torrentId);
-                        Assert.IsTrue(torrent != null && torrent.Length > 0, "Torrent download data is null or empty");
-                        TestContext.WriteLine("Torrent id {0} on result page {1} downloaded ok.", randomPagebrowse.response.results[i].torrents[j].torrentId, searchDetails.Page);
-                    }
-                }
-            }
+            TestContext.WriteLine("Searching for random valid torrent id...");
+            var torrentId = WhatRandom.GetTorrentId();
+            TestContext.WriteLine("Done. Found torrent id '{0}'. Downloading and validating torrent file...", torrentId);
+            var torrent = Api.DownloadTorrent(torrentId);
+            Assert.IsTrue(torrent != null && torrent.Length > 0, "Torrent download data is null or empty");
+            TestContext.WriteLine("Passed.");
         }
 
         [TestMethod]
-        [Description("Tests the GetUser method by iterating through a page of users as a result of performing a random GetUserSearch query")]
         public void GetUserTest()
         {
-            // Search for a single letter
-            string searchTerm = Helper.RandomCharString(1);
-            var users = Api.GetUserSearch(searchTerm, null);
-            this.PerformCommonResponseTests(users, searchTerm);
-
-            // Pick a random page from the pages
-            var userPage = Helper.GetRandomIntFromRange(1, users.response.pages);
-
-            // Get page of users
-            var usersPage = Api.GetUserSearch(searchTerm, userPage);
-
-            // Iterate through random page of users
-            for (int i = 0; i < usersPage.response.results.Count(); i++)
-            {
-                var user = Api.GetUser(usersPage.response.results[i].userId);
-                this.PerformCommonResponseTests(user);
-                TestContext.WriteLine("User {0} on page {1} pass ok (testing {2} of {3} users).", usersPage.response.results[i].userId, userPage, i + 1, usersPage.response.results.Count());
-            }
+            TestContext.WriteLine("Searching for random valid user id...");
+            var userId = WhatRandom.GetUserId();
+            TestContext.WriteLine("Done. Found user id '{0}'. Getting and validating user information...", userId);
+            var user = Api.GetUser(userId);
+            this.PerformCommonResponseTests(user);
+            TestContext.WriteLine("Passed");
         }
 
         [TestMethod]
-        [Description("Performs a random and broad user-search then verifies a randomly selected range of pages validate successfully")]
         public void GetUserSearchTest()
         {
-            // Search for a single letter
-            string searchTerm = Helper.RandomCharString(1);
-            var users = Api.GetUserSearch(searchTerm, null);
-            this.PerformCommonResponseTests(users, searchTerm);
+            // First page
+            string searchTerm = WhatCD.Random.RandomCharString(1);
+            TestContext.WriteLine("Requesting and testing page {0} of user search '{1}'...", 1, searchTerm);
+            var searchPage1 = Api.GetUserSearch(searchTerm, null);
+            this.PerformCommonResponseTests(searchPage1);
+            TestContext.WriteLine("Passed.");
 
-            // Define a random range of pages to parse
-            var rangeDef = new RangeSelector(1, users.response.pages, MAX_RANDOM_RANGE_SIZE);
-
-            // Iterate through random page range
-            for (int i = rangeDef.RandomRangeStart; i < rangeDef.RandomRangeEnd; i++)
+            // Random page
+            if (searchPage1.response.pages > 1)
             {
-                var userSearch = Api.GetUserSearch(searchTerm, i);
-
-                this.PerformCommonResponseTests(userSearch);
-                TestContext.WriteLine("Page {0} of {1} pass ok (testing {2} pages in total).", i, users.response.pages, rangeDef.ActualSegmentSize);
+                var page = WhatCD.Random.GetRandomIntFromRange(2, searchPage1.response.pages);
+                TestContext.WriteLine("Requesting and testing search page {0} of {1}...", page, searchPage1.response.pages);
+                var searchPageX = Api.GetUserSearch(searchTerm, page);
+                this.PerformCommonResponseTests(searchPageX);
+                TestContext.WriteLine("Passed.");
             }
         }
 
         // TODO: GetFlacLogScore
 
-        private void PerformCommonResponseTests<T>(IResponse<T> deserializedJson, string argsInfo = null)
+        private void PerformCommonResponseTests<T>(IResponse<T> deserializedJson)
         {
-            argsInfo = argsInfo != null ? string.Format(" (args info: {0})", argsInfo) : null;
-            Assert.IsNotNull(deserializedJson, "Response object is null" + (argsInfo != null ? argsInfo : ""));
-            StringAssert.Matches(deserializedJson.status, new Regex("success", RegexOptions.IgnoreCase), string.Format("Unexpected response status ({0})", deserializedJson.status) + (argsInfo != null ? argsInfo : ""));
-            Assert.IsFalse(Helper.AllPropertiesAreDefaultValues(deserializedJson.response), "JSON response data is null" + (argsInfo != null ? argsInfo : ""));
+            Assert.IsNotNull(deserializedJson, "Response object is null");
+            StringAssert.Matches(deserializedJson.status, new Regex("success", RegexOptions.IgnoreCase), string.Format("Unexpected response status ({0})", deserializedJson.status));
+            Assert.IsFalse(Helper.AllPropertiesAreDefaultValues(deserializedJson.response), "JSON response data is null");
         }
 
         [ClassCleanup]
         public static void ClassCleanup()
         {
             Api.Dispose();
-        }
-
-        private class SearchRequests : ISearchRequests
-        {
-            public string SearchTerm { get; set; }
-            public int? Page { get; set; }
-            public bool? ShowFilled { get; set; }
-            public string Tags { get; set; }
-            public int? TagsType { get; set; }
         }
 
         private class SearchInbox : IInbox

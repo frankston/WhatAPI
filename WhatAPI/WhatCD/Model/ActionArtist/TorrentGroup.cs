@@ -18,6 +18,8 @@ namespace WhatCD.Model.ActionArtist
         public string wikiImage { get; set; }
         public bool groupVanityHouse { get; set; }
         public bool hasBookmarked { get; set; }
+        public List<TorrentGroupArtist> artists { get; set; }
+        public object extendedArtists { get; set; } // TODO: This is a mess! Uses numbers as property names.
         public List<Torrent> torrent { get; set; }
         public override string ToString()
         {

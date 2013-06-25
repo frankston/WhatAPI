@@ -13,6 +13,7 @@ namespace WhatCD.Model.ActionUserSearch
         public bool warned { get; set; }
         public bool enabled { get; set; }
         public string @class { get; set; }
+        public string avatar { get; set; }
 
         public override string ToString()
         {

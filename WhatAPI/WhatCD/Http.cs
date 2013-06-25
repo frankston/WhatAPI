@@ -202,8 +202,7 @@ namespace WhatCD
         /// <param name="json">Json returned from WhatCD server</param>
         private static void ValidateJsonException(string json)
         {
-            var error = new Regex(@"^\{""status"":""failure"",""error"":""(?<Error>.+)""\}", RegexOptions.IgnoreCase).Matches(json);
-            if (error.Count > 0) throw new WebException("Server returned standard Json error: " + error[0].Groups["Error"].Value.ToString().Trim());
+            if (Regex.IsMatch(json, @"^\{""status"":""failure""")) throw new WebException("Server returned Json status failure: " + json);
         }
 
         /// <summary>

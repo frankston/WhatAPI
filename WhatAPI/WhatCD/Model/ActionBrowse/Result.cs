@@ -10,6 +10,7 @@ namespace WhatCD.Model.ActionBrowse
         public int groupId { get; set; }
         public string groupName { get; set; }
         public string artist { get; set; }
+        public string cover { get; set; }
         public List<string> tags { get; set; }
         public bool bookmarked { get; set; }
         public bool vanityHouse { get; set; }

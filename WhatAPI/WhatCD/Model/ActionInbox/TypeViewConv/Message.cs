@@ -11,6 +11,7 @@ namespace WhatCD.Model.ActionInbox.TypeViewConv
         public int senderId { get; set; }
         public string senderName { get; set; }
         public DateTime sentDate { get; set; }
+        public string avatar { get; set; }
         public string bbBody { get; set; }
         public string body { get; set; }
 
