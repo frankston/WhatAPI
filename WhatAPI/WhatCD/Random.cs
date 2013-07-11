@@ -152,7 +152,8 @@ namespace WhatCD
 
             if (artist.response.torrentGroup.Count > 0)
             {
-                return GetRandomIntFromRange(0, artist.response.torrentGroup.Count);
+                var number = GetRandomIntFromRange(0, artist.response.torrentGroup.Count);
+                return artist.response.torrentGroup[number].groupId;
             }
             throw new ArgumentNullException(string.Format("No torrent groups found for artist id {0}.", artistId));
         }

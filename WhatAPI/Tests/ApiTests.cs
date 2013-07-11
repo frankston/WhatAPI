@@ -10,48 +10,39 @@ using WhatCD;
 using WhatCD.Model;
 using WhatCD.Model.ActionAnnouncements;
 using System.Web;
+using WhatCD.Model.ActionUserSearch;
+using System.Threading.Tasks;
 
 namespace Tests
 {
     [TestClass]
-    public class ApiTest
+    public class ApiTests
     {
 
-        private static Api Api;
-        private static WhatCD.Random WhatRandom;
-        private const int MAX_RANDOM_RANGE_SIZE = 20;
-
         public TestContext TestContext { get; set; }
-
-        [ClassInitialize]
-        public static void ClassInitialize(TestContext context)
-        {
-            Api = new Api("YourUsername", "YourPassword") { ErrorOnMissingMember = true };
-            WhatRandom = new WhatCD.Random(Api);
-        }
 
         [TestMethod]
         public void GetSubscriptionsTest()
         {
-            var subscriptions = Api.GetSubscriptions(true);
+            var subscriptions = Credentials.Api.GetSubscriptions(true);
             this.PerformCommonResponseTests(subscriptions);
         }
 
         [TestMethod]
         public void GetForumMainTest()
         {
-            var forumMain = Api.GetForumMain();
+            var forumMain = Credentials.Api.GetForumMain();
             this.PerformCommonResponseTests(forumMain);
         }
 
         [TestMethod]
         public void GetForumViewForumTest()
         {
-            var forumID = WhatRandom.GetForumId();
+            var forumID = Credentials.WhatRandom.GetForumId();
 
             // First page
             TestContext.WriteLine("Requesting and testing page {0} of forum ID {1}...", 1, forumID);
-            var forumPage1 = Api.GetForumViewForum(forumID, 1);
+            var forumPage1 = Credentials.Api.GetForumViewForum(forumID, 1);
             this.PerformCommonResponseTests(forumPage1);
             TestContext.WriteLine("Passed.");
 
@@ -60,7 +51,7 @@ namespace Tests
             {
                 var page = WhatCD.Random.GetRandomIntFromRange(2, forumPage1.response.pages);
                 TestContext.WriteLine("Requesting and testing (random) page {0} of forum ID {1}...", page, forumID);
-                var forumPageX = Api.GetForumViewForum(forumID, page);
+                var forumPageX = Credentials.Api.GetForumViewForum(forumID, page);
                 this.PerformCommonResponseTests(forumPageX);
                 TestContext.WriteLine("Passed.");
             }
@@ -69,11 +60,11 @@ namespace Tests
         [TestMethod]
         public void GetForumViewThreadTest()
         {
-            var threadId = WhatRandom.GetForumThreadId();
+            var threadId = Credentials.WhatRandom.GetForumThreadId();
 
             // First page
             TestContext.WriteLine("Requesting and testing page {0} of thread ID {1}...", 1, threadId);
-            var threadPage1 = Api.GetForumViewThread(threadId, 1);
+            var threadPage1 = Credentials.Api.GetForumViewThread(threadId, 1);
             this.PerformCommonResponseTests(threadPage1);
             TestContext.WriteLine("Passed.");
 
@@ -82,7 +73,7 @@ namespace Tests
             {
                 var page = WhatCD.Random.GetRandomIntFromRange(2, threadPage1.response.pages);
                 TestContext.WriteLine("Requesting and testing (random) page {0} of thread ID {1}...", page, threadId);
-                var threadPageX = Api.GetForumViewThread(threadId, page);
+                var threadPageX = Credentials.Api.GetForumViewThread(threadId, page);
                 this.PerformCommonResponseTests(threadPageX);
                 TestContext.WriteLine("Passed.");
             }
@@ -118,7 +109,7 @@ namespace Tests
             // First page
             TestContext.WriteLine("Requesting and testing page {0} of {1}...", 1, searchOptions.MessageType);
             searchOptions.Page = 1;
-            var inboxPage1 = Api.GetInbox(searchOptions);
+            var inboxPage1 = Credentials.Api.GetInbox(searchOptions);
             this.PerformCommonResponseTests(inboxPage1);
             TestContext.WriteLine("Passed.");
 
@@ -127,7 +118,7 @@ namespace Tests
             {
                 searchOptions.Page = WhatCD.Random.GetRandomIntFromRange(2, inboxPage1.response.pages);
                 TestContext.WriteLine("Requesting and testing (random) page {0} of {1}...", searchOptions.Page, searchOptions.MessageType);
-                var inboxPageX = Api.GetInbox(searchOptions);
+                var inboxPageX = Credentials.Api.GetInbox(searchOptions);
                 this.PerformCommonResponseTests(inboxPageX);
                 TestContext.WriteLine("Passed.");
             }
@@ -138,7 +129,7 @@ namespace Tests
                 for (int i = 0; i < inboxPage1.response.messages.Count; i++)
                 {
                     TestContext.WriteLine("Requesting and testing conversation {0} of {1}...", i + 1, inboxPage1.response.messages.Count);
-                    var conversation = Api.GetInboxViewConv(inboxPage1.response.messages[i].convId);
+                    var conversation = Credentials.Api.GetInboxViewConv(inboxPage1.response.messages[i].convId);
                     this.PerformCommonResponseTests(conversation);
                     TestContext.WriteLine("Passed.");
                 }
@@ -148,36 +139,35 @@ namespace Tests
         [TestMethod]
         public void GetIndexTest()
         {
-            var index = Api.GetIndex();
+            var index = Credentials.Api.GetIndex();
             this.PerformCommonResponseTests(index);
         }
 
         [TestMethod]
-
         public void GetStatusTest()
         {
-            var status = Api.GetStatus();
+            var status = Credentials.Api.GetStatus();
             Assert.IsNotNull(status);
         }
 
         [TestMethod]
         public void GetUptimeTest()
         {
-            var uptime = Api.GetUptime();
+            var uptime = Credentials.Api.GetUptime();
             Assert.IsNotNull(uptime);
         }
 
         [TestMethod]
         public void GetRecordsTest()
         {
-            var records = Api.GetRecords();
+            var records = Credentials.Api.GetRecords();
             Assert.IsNotNull(records);
         }
 
         [TestMethod]
         public void GetAnnouncementsTest()
         {
-            var announcements = Api.GetAnnouncements();
+            var announcements = Credentials.Api.GetAnnouncements();
             this.PerformCommonResponseTests(announcements);
         }
 
@@ -186,7 +176,7 @@ namespace Tests
         {
             // First page
             TestContext.WriteLine("Requesting and testing notifications page {0}...", 1);
-            var notificationsPage1 = Api.GetNotifications(1);
+            var notificationsPage1 = Credentials.Api.GetNotifications(1);
             this.PerformCommonResponseTests(notificationsPage1);
             TestContext.WriteLine("Passed.");
 
@@ -195,7 +185,7 @@ namespace Tests
             {
                 var page = WhatCD.Random.GetRandomIntFromRange(2, notificationsPage1.response.pages);
                 TestContext.WriteLine("Requesting and testing notifications page {0} of {1}...", page, notificationsPage1.response.pages);
-                var notificationsPageX = Api.GetNotifications(page);
+                var notificationsPageX = Credentials.Api.GetNotifications(page);
                 this.PerformCommonResponseTests(notificationsPageX);
                 TestContext.WriteLine("Passed.");
             }
@@ -204,84 +194,84 @@ namespace Tests
         [TestMethod]
         public void GetTop10TorrentsTest_Limit10()
         {
-            var top10Torrents = Api.GetTop10Torrents(10);
+            var top10Torrents = Credentials.Api.GetTop10Torrents(10);
             this.PerformCommonResponseTests(top10Torrents);
         }
 
         [TestMethod]
         public void GetTop10TorrentsTest_Limit25()
         {
-            var top10Torrents = Api.GetTop10Torrents(25);
+            var top10Torrents = Credentials.Api.GetTop10Torrents(25);
             this.PerformCommonResponseTests(top10Torrents);
         }
 
         [TestMethod]
         public void GetTop10TorrentsTest_Limit100()
         {
-            var top10Torrents = Api.GetTop10Torrents(100);
+            var top10Torrents = Credentials.Api.GetTop10Torrents(100);
             this.PerformCommonResponseTests(top10Torrents);
         }
 
         [TestMethod]
         public void GetTop10TorrentsTest_Limit250()
         {
-            var top10Torrents = Api.GetTop10Torrents(250);
+            var top10Torrents = Credentials.Api.GetTop10Torrents(250);
             this.PerformCommonResponseTests(top10Torrents);
         }
 
         [TestMethod]
         public void GetTop10TagsTest_Limit10()
         {
-            var top10Tags = Api.GetTop10Tags(10);
+            var top10Tags = Credentials.Api.GetTop10Tags(10);
             this.PerformCommonResponseTests(top10Tags);
         }
 
         [TestMethod]
         public void GetTop10TagsTest_Limit25()
         {
-            var top10Tags = Api.GetTop10Tags(25);
+            var top10Tags = Credentials.Api.GetTop10Tags(25);
             this.PerformCommonResponseTests(top10Tags);
         }
 
         [TestMethod]
         public void GetTop10TagsTest_Limit100()
         {
-            var top10Tags = Api.GetTop10Tags(100);
+            var top10Tags = Credentials.Api.GetTop10Tags(100);
             this.PerformCommonResponseTests(top10Tags);
         }
 
         [TestMethod]
         public void GetTop10TagsTest_Limit250()
         {
-            var top10Tags = Api.GetTop10Tags(250);
+            var top10Tags = Credentials.Api.GetTop10Tags(250);
             this.PerformCommonResponseTests(top10Tags);
         }
 
         [TestMethod]
         public void GetTop10UsersTest_Limit10()
         {
-            var top10Users = Api.GetTop10Users(10);
+            var top10Users = Credentials.Api.GetTop10Users(10);
             this.PerformCommonResponseTests(top10Users);
         }
 
         [TestMethod]
         public void GetTop10UsersTest_Limit25()
         {
-            var top10Users = Api.GetTop10Users(25);
+            var top10Users = Credentials.Api.GetTop10Users(25);
             this.PerformCommonResponseTests(top10Users);
         }
 
         [TestMethod]
         public void GetTop10UsersTest_Limit100()
         {
-            var top10Users = Api.GetTop10Users(100);
+            var top10Users = Credentials.Api.GetTop10Users(100);
             this.PerformCommonResponseTests(top10Users);
         }
 
         [TestMethod]
         public void GetTop10UsersTest_Limit250()
         {
-            var top10Users = Api.GetTop10Users(250);
+            var top10Users = Credentials.Api.GetTop10Users(250);
             this.PerformCommonResponseTests(top10Users);
         }
 
@@ -289,9 +279,9 @@ namespace Tests
         public void GetTorrentTest_ById()
         {
             TestContext.WriteLine("Finding random torrent ID...");
-            var torrentID = WhatRandom.GetTorrentId();
+            var torrentID = Credentials.WhatRandom.GetTorrentId();
             TestContext.WriteLine("Done. Found random torrent ID ({0}). Getting torrent information...", torrentID);
-            var torrent = Api.GetTorrent(torrentID);
+            var torrent = Credentials.Api.GetTorrent(torrentID);
             this.PerformCommonResponseTests(torrent);
             TestContext.WriteLine("Passed.");
         }
@@ -300,9 +290,9 @@ namespace Tests
         public void GetTorrentTest_ByHash()
         {
             TestContext.WriteLine("Finding random torrent hash...");
-            var torrentHash = WhatRandom.GetTorrentHash();
+            var torrentHash = Credentials.WhatRandom.GetTorrentHash();
             TestContext.WriteLine("Done. Found random torrent hash ({0}). Getting torrent information...", torrentHash);
-            var torrent = Api.GetTorrent(torrentHash);
+            var torrent = Credentials.Api.GetTorrent(torrentHash);
             this.PerformCommonResponseTests(torrent);
             TestContext.WriteLine("Passed.");
         }
@@ -311,7 +301,7 @@ namespace Tests
         public void GetRequestsTest()
         {
             TestContext.WriteLine("Finding random page of requests...");
-            var requests = WhatRandom.GetRequests();
+            var requests = Credentials.WhatRandom.GetRequests();
             TestContext.WriteLine("Done. Randomly selected requests page {0}. Validating requests page...", requests.response.currentPage);
             this.PerformCommonResponseTests(requests);
             TestContext.WriteLine("Passed.");
@@ -321,12 +311,12 @@ namespace Tests
         public void GetSimilarArtistsTest()
         {
             TestContext.WriteLine("Finding random artist that has similar artists...");
-            var artist = WhatRandom.GetIdOfArtistThatHasSimilarArtists();
+            var artist = Credentials.WhatRandom.GetIdOfArtistThatHasSimilarArtists();
             TestContext.WriteLine("Done. ID of artist that has similar artists is {0}. Validating similar artists...", artist);
-            var similarArtists = Api.GetSimilarArtists(artist, 100);
+            var similarArtists = Credentials.Api.GetSimilarArtists(artist, 100);
             for (int i = 0; i < similarArtists.artists.Count; i++)
             {
-                Assert.IsFalse(Helper.AllPropertiesAreDefaultValues(similarArtists.artists[i]), "Similar artist ({0}) info is null", similarArtists.artists[i]);
+                Assert.IsFalse(AllPropertiesAreDefaultValues(similarArtists.artists[i]), "Similar artist ({0}) info is null", similarArtists.artists[i]);
             }
             TestContext.WriteLine("Passed.");
         }
@@ -337,7 +327,7 @@ namespace Tests
             // First page
             var browseOptions = new SearchTorrents() { GroupName = WhatCD.Random.RandomCharString(1) };
             TestContext.WriteLine("Requesting and testing browse page {0} of GroupName search criteria '{1}'...", 1, browseOptions.GroupName);
-            var browsePage1 = Api.GetBrowse(browseOptions);
+            var browsePage1 = Credentials.Api.GetBrowse(browseOptions);
             this.PerformCommonResponseTests(browsePage1);
             TestContext.WriteLine("Passed.");
 
@@ -346,7 +336,7 @@ namespace Tests
             {
                 browseOptions.Page = WhatCD.Random.GetRandomIntFromRange(2, browsePage1.response.pages);
                 TestContext.WriteLine("Requesting and testing browse page {0} of {1}...", browseOptions.Page, browsePage1.response.pages);
-                var browsePageX = Api.GetBrowse(browseOptions);
+                var browsePageX = Credentials.Api.GetBrowse(browseOptions);
                 this.PerformCommonResponseTests(browsePageX);
                 TestContext.WriteLine("Passed.");
             }
@@ -355,14 +345,14 @@ namespace Tests
         [TestMethod]
         public void GetBookmarksTorrentsTest()
         {
-            var bookmarksTorrents = Api.GetBookmarksTorrents();
+            var bookmarksTorrents = Credentials.Api.GetBookmarksTorrents();
             this.PerformCommonResponseTests(bookmarksTorrents);
         }
 
         [TestMethod]
         public void GetBookmarksArtistsTest()
         {
-            var bookmarksArtists = Api.GetBookmarksArtists();
+            var bookmarksArtists = Credentials.Api.GetBookmarksArtists();
             this.PerformCommonResponseTests(bookmarksArtists);
         }
 
@@ -370,9 +360,9 @@ namespace Tests
         public void GetArtistTest_ByName()
         {
             TestContext.WriteLine("Searching for random artist name...");
-            var artistName = WhatRandom.GetArtistName();
+            var artistName = Credentials.WhatRandom.GetArtistName();
             TestContext.WriteLine("Done. Found artist '{0}'. Requesting and validating artist information...", artistName);
-            var artist = Api.GetArtist(artistName);
+            var artist = Credentials.Api.GetArtist(artistName);
             this.PerformCommonResponseTests(artist);
             TestContext.WriteLine("Passed.");
         }
@@ -381,9 +371,9 @@ namespace Tests
         public void GetArtistTest_ById()
         {
             TestContext.WriteLine("Searching for random artist id...");
-            var artistId = WhatRandom.GetArtistId();
+            var artistId = Credentials.WhatRandom.GetArtistId();
             TestContext.WriteLine("Done. Found artist id '{0}'. Requesting and validating artist information...", artistId);
-            var artist = Api.GetArtist(artistId);
+            var artist = Credentials.Api.GetArtist(artistId);
             this.PerformCommonResponseTests(artist);
             TestContext.WriteLine("Passed.");
         }
@@ -392,9 +382,9 @@ namespace Tests
         public void GetTorrentGroupTest()
         {
             TestContext.WriteLine("Searching for random group id...");
-            var groupId = WhatRandom.GetGroupId();
+            var groupId = Credentials.WhatRandom.GetGroupId();
             TestContext.WriteLine("Done. Found group id '{0}'. Requesting and validating group information...", groupId);
-            var groups = Api.GetTorrentGroup(groupId);
+            var groups = Credentials.Api.GetTorrentGroup(groupId);
             this.PerformCommonResponseTests(groups);
             TestContext.WriteLine("Passed.");
         }
@@ -403,10 +393,12 @@ namespace Tests
         public void DownloadTorrentTest()
         {
             TestContext.WriteLine("Searching for random valid torrent id...");
-            var torrentId = WhatRandom.GetTorrentId();
+            var torrentId = Credentials.WhatRandom.GetTorrentId();
             TestContext.WriteLine("Done. Found torrent id '{0}'. Downloading and validating torrent file...", torrentId);
-            var torrent = Api.DownloadTorrent(torrentId);
-            Assert.IsTrue(torrent != null && torrent.Length > 0, "Torrent download data is null or empty");
+            var torrent = Credentials.Api.DownloadTorrent(torrentId);
+            Assert.IsNotNull(torrent, "Torrent object is null");
+            Assert.IsFalse(string.IsNullOrWhiteSpace(torrent.Name), "Torrent name is null or blank");
+            Assert.IsTrue(torrent.Bytes.Length > 0, "Torrent size is zero bytes");
             TestContext.WriteLine("Passed.");
         }
 
@@ -414,9 +406,9 @@ namespace Tests
         public void GetUserTest()
         {
             TestContext.WriteLine("Searching for random valid user id...");
-            var userId = WhatRandom.GetUserId();
+            var userId = Credentials.WhatRandom.GetUserId();
             TestContext.WriteLine("Done. Found user id '{0}'. Getting and validating user information...", userId);
-            var user = Api.GetUser(userId);
+            var user = Credentials.Api.GetUser(userId);
             this.PerformCommonResponseTests(user);
             TestContext.WriteLine("Passed");
         }
@@ -427,7 +419,7 @@ namespace Tests
             // First page
             string searchTerm = WhatCD.Random.RandomCharString(1);
             TestContext.WriteLine("Requesting and testing page {0} of user search '{1}'...", 1, searchTerm);
-            var searchPage1 = Api.GetUserSearch(searchTerm, null);
+            var searchPage1 = Credentials.Api.GetUserSearch(searchTerm, null);
             this.PerformCommonResponseTests(searchPage1);
             TestContext.WriteLine("Passed.");
 
@@ -436,10 +428,26 @@ namespace Tests
             {
                 var page = WhatCD.Random.GetRandomIntFromRange(2, searchPage1.response.pages);
                 TestContext.WriteLine("Requesting and testing search page {0} of {1}...", page, searchPage1.response.pages);
-                var searchPageX = Api.GetUserSearch(searchTerm, page);
+                var searchPageX = Credentials.Api.GetUserSearch(searchTerm, page);
                 this.PerformCommonResponseTests(searchPageX);
                 TestContext.WriteLine("Passed.");
             }
+        }
+
+        [TestMethod]
+        public void ParallelServerCallDelayTest()
+        {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            Parallel.For(0, 3, (i) =>
+            {
+                Credentials.Api.GetNotifications(null);
+            }
+            );
+            stopwatch.Stop();
+
+            // Since we have made a total of three calls to the web server the total elapsed time must be greater than 6 seconds (to test the enforced 2 second delay per web server call)
+            Assert.IsTrue(stopwatch.Elapsed > new TimeSpan(0, 0, 0, 6));
         }
 
         // TODO: GetFlacLogScore
@@ -448,13 +456,35 @@ namespace Tests
         {
             Assert.IsNotNull(deserializedJson, "Response object is null");
             StringAssert.Matches(deserializedJson.status, new Regex("success", RegexOptions.IgnoreCase), string.Format("Unexpected response status ({0})", deserializedJson.status));
-            Assert.IsFalse(Helper.AllPropertiesAreDefaultValues(deserializedJson.response), "JSON response data is null");
+            Assert.IsFalse(AllPropertiesAreDefaultValues(deserializedJson.response), "JSON response data is null");
         }
 
-        [ClassCleanup]
-        public static void ClassCleanup()
+        private static bool AllPropertiesAreDefaultValues<T>(T classInstance)
         {
-            Api.Dispose();
+            foreach (var property in classInstance.GetType().GetProperties())
+            {
+                var name = property.Name;
+                var value = property.GetValue(classInstance, null);
+                if (!AreEqual(value, GetDefaultValue(property.PropertyType))) return false;
+            }
+            return true;
+        }
+
+        private static object GetDefaultValue(Type t)
+        {
+            if (t.IsValueType)
+            {
+                return Activator.CreateInstance(t);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        private static bool AreEqual<T>(T a, T b)
+        {
+            return EqualityComparer<T>.Default.Equals(a, b);
         }
 
         private class SearchInbox : IInbox

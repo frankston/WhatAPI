@@ -179,6 +179,8 @@
     <Compile Include="QueryBuilder.cs" />
     <Compile Include="Http.cs" />
     <Compile Include="Random.cs" />
+    <Compile Include="Torrent.cs" />
+    <Compile Include="WebRequestWrapper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Newtonsoft.Json.dll">

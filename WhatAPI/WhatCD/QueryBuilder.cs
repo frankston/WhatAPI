@@ -18,17 +18,17 @@ namespace WhatCD
 
         public void Append(string key, string value)
         {
-            if (!string.IsNullOrWhiteSpace(value)) this.Query.Append(string.Format("&{0}={1}", key, HttpUtility.HtmlEncode(value)));
+            if (!string.IsNullOrWhiteSpace(value)) this.Query.AppendFormat("&{0}={1}", key, HttpUtility.HtmlEncode(value));
         }
 
         public void Append(string key, int? value)
         {
-            if (value != null) this.Query.Append(string.Format("&{0}={1}", key, value.ToString()));
+            if (value != null) this.Query.AppendFormat("&{0}={1}", key, value.ToString());
         }
 
         public void Append(string key, bool? value)
         {
-            if (value != null) this.Query.Append(string.Format("&{0}={1}", key, (bool)value ? 1 : 0));
+            if (value != null) this.Query.AppendFormat("&{0}={1}", key, (bool)value ? 1 : 0);
         }
 
     }
