@@ -236,11 +236,25 @@ namespace WhatCD
         public static int GetRandomIntFromRange(int smallest, int largest, params int[] exclude)
         {
             if (smallest > largest) throw new ArgumentOutOfRangeException("Smallest is greater than largest");
-            if (smallest == largest) throw new ArgumentOutOfRangeException("Smallest cannot be same as largest");
+
+            if (smallest == largest)
+            {
+                if (!exclude.Contains(smallest))
+                    return smallest;
+                else
+                    throw new ArgumentOutOfRangeException("Smallest is same as largest and the value exists in the exclusion list");
+            }
+
+            // Check at least one value is not specified in exclusion list
+            var range = Enumerable.Range(smallest, largest).ToArray();
+            if (range.Intersect(exclude).ToArray().Length == range.Length) throw new ArgumentOutOfRangeException("No return value is possible - all integer selections are excluded");
+
+            // TODO: This should be made far more efficient - not a high priority since it is only ever used during testing
             while (true)
             {
                 var value = random.Next(smallest, largest + 1);
-                if (!exclude.Contains(value)) return value;
+                if (!exclude.Contains(value))
+                    return value;
             }
         }
 

@@ -10,6 +10,7 @@ namespace WhatCD.Model.ActionAnnouncements
         public int blogId { get; set; }
         public string author { get; set; }
         public string title { get; set; }
+        public string bbBody { get; set; }
         public string body { get; set; }
         public DateTime blogTime { get; set; }
         public int threadId { get; set; }

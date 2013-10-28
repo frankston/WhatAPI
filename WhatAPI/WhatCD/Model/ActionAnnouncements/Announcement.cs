@@ -9,6 +9,7 @@ namespace WhatCD.Model.ActionAnnouncements
     {
         public int newsId { get; set; }
         public string title { get; set; }
+        public string bbBody { get; set; }
         public string body { get; set; }
         public DateTime newsTime { get; set; }
 

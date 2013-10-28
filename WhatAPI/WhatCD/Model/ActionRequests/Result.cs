@@ -21,6 +21,7 @@ namespace WhatCD.Model.ActionRequests
         public int year { get; set; }
         public string image { get; set; }
         public string description { get; set; }
+        public string recordLabel { get; set; }
         public string catalogueNumber { get; set; }
         public string releaseType { get; set; }
         public string bitrateList { get; set; }
