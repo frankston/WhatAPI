@@ -44,7 +44,6 @@ namespace WhatCD
         }
         private CookieContainer _cookieJar = new CookieContainer();
 
-
         /// <summary>
         /// Attempts to authenticate to WhatCD server and creates a new logged-on session.
         /// </summary>
@@ -69,7 +68,8 @@ namespace WhatCD
             using (var reader = new StreamReader(response))
             {
                 var json = reader.ReadToEnd();
-                if (Regex.IsMatch(json, @"^\{""status"":""failure""")) throw new WebException(string.Format("Request for {0} returned Json status failure: {1}", fullUri, json));
+                if (json.TrimStart().StartsWith("{\"status\":\"failure\"", StringComparison.OrdinalIgnoreCase))
+                    throw new WebException(string.Format("Request for {0} returned Json status failure: {1}", fullUri, json));
                 return json;
             }
         }
@@ -107,14 +107,12 @@ namespace WhatCD
         public int GetFlacLogScore(string log, string authKey)
         {
             var postData = string.Format("action=takeupload&auth={0}&log_contents={1}", authKey, HttpUtility.UrlEncode(log));
-            int score;
             var wrw = new WebRequestWrapper(new Uri(this.BaseWhatCDUri, "logchecker.php"), WebRequestWrapper.RequestMethod.POST, "application/x-www-form-urlencoded", ref _cookieJar, postData);
             using (var response = wrw.PerformWebRequest())
             using (var reader = new StreamReader(response))
             {
-                score = ExtractLogScore(reader.ReadToEnd());
+                return ExtractLogScore(reader.ReadToEnd());
             }
-            return score;
         }
 
         /// <summary>
@@ -148,9 +146,11 @@ namespace WhatCD
         {
             var regex = new Regex(@">(?<score>[-\d]+)</span> \(out of 100\)</blockquote>");
             var matches = regex.Matches(html);
-            if (matches.Count != 1) throw new WebException("Expected log score was not found");
+            if (matches.Count != 1)
+                throw new WebException("Expected log score was not found");
             int score;
-            if (!int.TryParse(matches[0].Groups["score"].Value.ToString(), out score)) throw new Exception("Failed to convert score to int.");
+            if (!int.TryParse(matches[0].Groups["score"].Value.ToString(), out score))
+                throw new Exception("Failed to convert score to int.");
             return score;
         }
     }

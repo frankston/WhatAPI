@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WhatCD.Model;
@@ -10,6 +10,7 @@ using WhatCD.Model.ActionAnnouncements;
 using WhatCD.Model.ActionBookmarks.TypeArtists;
 using WhatCD.Model.ActionBookmarks.TypeTorrents;
 using WhatCD.Model.ActionBrowse;
+using WhatCD.Model.ActionCollage;
 using WhatCD.Model.ActionForum.TypeMain;
 using WhatCD.Model.ActionForum.TypeViewForum;
 using WhatCD.Model.ActionForum.TypeViewThread;
@@ -28,12 +29,13 @@ using WhatCD.Model.ActionUserSearch;
 using WhatCD.Model.WhatStatus;
 
 // TODO: test method to validate log checking
-// TODO: do a readme!
+// TODO: do up a bloody readme already!
 // TODO: Implement json attributes to change model member name casing
 // TODO: Add summary comments for all model properties
 // TODO: Double check all escape and unescape locations
-// TODO: Make all setting values properties
+// TODO: Make all hard-coded values properties 
 // TODO: Remove all "this." and rename member valiables to _fieldName standard
+// TODO: Check usage of 'Result' and 'Response' naming conventions are consistent
 
 namespace WhatCD
 {
@@ -42,15 +44,16 @@ namespace WhatCD
     /// </summary>
     /// <remarks>
     /// Home: https://github.com/frankston/WhatAPI
-    /// JSON API Reference: https://what.cd/wiki.php?action=article&id=998
+    /// JSON API Reference: https://github.com/WhatCD/Gazelle/wiki/JSON-API-Documentation
     /// </remarks>
     public class Api : IDisposable
     {
 
         private Http _http;
-        private bool _disposed = false;
 
         public string AuthKey { get; private set; }
+        public string PassKey { get; private set; }
+        private JsonSerializerSettings JsonSettings { get; set; }
 
         public Uri RootWhatStatusUri
         {
@@ -64,40 +67,76 @@ namespace WhatCD
             set { _http.BaseWhatCDUri = value; }
         }
 
-        /// <summary>
-        /// If set to true then the deserialization process will raise an exception if any JSON members exist that do not exist in the model data.
-        /// This is primarily intended to be used with integration testing.
-        /// </summary>
-        public bool ErrorOnMissingMember { get; set; }
-
 
         /// <summary>
         /// Logs the user on to what.cd.
         /// </summary>
         /// <param name="username">What.cd username.</param>
         /// <param name="password">What.cd password.</param>
-        public Api(string username, string password)
+        /// <param name="errorOnMissingMember">If set to true then the deserialization process will raise an exception if any JSON members exist that do not exist in the model data.</param>
+        public Api(string username, string password, bool errorOnMissingMember = false)
         {
+            JsonSettings = new JsonSerializerSettings();
+            JsonSettings.MissingMemberHandling = errorOnMissingMember ? MissingMemberHandling.Error : MissingMemberHandling.Ignore;
+
             TaskScheduler.UnobservedTaskException += (s, e) =>
                 {
                     Debug.WriteLine("Unobserved task scheduler exception: " + e.Exception.Message);
                     e.SetObserved();
                 };
             _http = new Http(username, password);
-            this.AuthKey = this.GetIndex().response.authkey;
+            
+            var index = this.GetIndex();
+            this.AuthKey = index.response.authkey;
+            this.PassKey = index.response.passkey;
         }
 
+
+        /// <summary>
+        /// Verifies the current logged-on session is valid.
+        /// </summary>
+        /// <returns>True if the current session is valid.</returns>
+        public bool SessionIsValid()
+        {
+            try
+            {
+                var index = GetIndex();
+                return string.Equals(index.status, "success", StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+
+        // Collages
+
+        /// <summary>
+        /// Gets information about a particular collage.
+        /// </summary>
+        /// <param name="collageID">Collage ID. Mandatory.</param>
+        /// <returns>JSON response deserialized into Collage object</returns>
+        public Collage GetCollage(int collageID)
+        {
+
+            var builder = new QueryBuilder("ajax.php?action=collage");
+            builder.Append("id", collageID);
+            var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
+            return JsonConvert.DeserializeObject<Collage>(json, JsonSettings);
+
+        }
 
         // Status
 
         /// <summary>
-        /// Determines if the site, tracker, and irc are up.
+        /// Determines if the site, tracker, and irc are online.
         /// </summary>
         /// <returns>JSON response deserialized into Status object.</returns>
         public Status GetStatus()
         {
             var json = _http.RequestJson(this.RootWhatStatusUri, "api/status");
-            return Deserialize<Status>(json);
+            return JsonConvert.DeserializeObject<Status>(json, JsonSettings);
         }
 
         /// <summary>
@@ -107,7 +146,7 @@ namespace WhatCD
         public Uptime GetUptime()
         {
             var json = _http.RequestJson(this.RootWhatStatusUri, "api/uptime");
-            return Deserialize<Uptime>(json);
+            return JsonConvert.DeserializeObject<Uptime>(json, JsonSettings);
         }
 
         /// <summary>
@@ -117,7 +156,7 @@ namespace WhatCD
         public Records GetRecords()
         {
             var json = _http.RequestJson(this.RootWhatStatusUri, "api/records");
-            return Deserialize<Records>(json);
+            return JsonConvert.DeserializeObject<Records>(json, JsonSettings);
         }
 
 
@@ -133,7 +172,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=subscriptions");
             builder.Append("showunread", onlyShowUnread);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<Subscriptions>(json);
+            return JsonConvert.DeserializeObject<Subscriptions>(json, JsonSettings);
         }
 
         /// <summary>
@@ -143,7 +182,7 @@ namespace WhatCD
         public ForumMain GetForumMain()
         {
             var json = _http.RequestJson(this.RootWhatCDUri, "ajax.php?action=forum&type=main");
-            return Deserialize<ForumMain>(json);
+            return JsonConvert.DeserializeObject<ForumMain>(json, JsonSettings);
         }
 
         /// <summary>
@@ -158,7 +197,7 @@ namespace WhatCD
             builder.Append("forumid", forumID);
             builder.Append("page", page);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<ForumViewForum>(json);
+            return JsonConvert.DeserializeObject<ForumViewForum>(json, JsonSettings);
         }
 
         /// <summary>
@@ -193,7 +232,7 @@ namespace WhatCD
         private WhatCD.Model.ActionTorrent.Torrent GetTorrent(QueryBuilder builder)
         {
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<WhatCD.Model.ActionTorrent.Torrent>(json);
+            return JsonConvert.DeserializeObject<WhatCD.Model.ActionTorrent.Torrent>(json, JsonSettings);
         }
 
         /// <summary>
@@ -208,7 +247,7 @@ namespace WhatCD
             builder.Append("threadid", threadID);
             builder.Append("page", page);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<ForumViewThread>(json);
+            return JsonConvert.DeserializeObject<ForumViewThread>(json, JsonSettings);
         }
 
         /// <summary>
@@ -221,7 +260,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=forum&type=viewthread");
             builder.Append("postid", postID);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<ForumViewThread>(json);
+            return JsonConvert.DeserializeObject<ForumViewThread>(json, JsonSettings);
         }
 
 
@@ -241,7 +280,7 @@ namespace WhatCD
             builder.Append("search", options.SearchTerm);
             builder.Append("searchtype", options.SearchType);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<Inbox>(json);
+            return JsonConvert.DeserializeObject<Inbox>(json, JsonSettings);
         }
 
         /// <summary>
@@ -254,7 +293,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=inbox&type=viewconv");
             builder.Append("id", conversationID);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<InboxViewConv>(json);
+            return JsonConvert.DeserializeObject<InboxViewConv>(json, JsonSettings);
         }
 
 
@@ -267,7 +306,7 @@ namespace WhatCD
         public Index GetIndex()
         {
             var json = _http.RequestJson(this.RootWhatCDUri, "ajax.php?action=index");
-            return Deserialize<Index>(json);
+            return JsonConvert.DeserializeObject<Index>(json, JsonSettings);
         }
 
         /// <summary>
@@ -277,7 +316,7 @@ namespace WhatCD
         public Announcements GetAnnouncements()
         {
             var json = _http.RequestJson(this.RootWhatCDUri, "ajax.php?action=announcements");
-            return Deserialize<Announcements>(json);
+            return JsonConvert.DeserializeObject<Announcements>(json, JsonSettings);
         }
 
         /// <summary>
@@ -290,7 +329,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=notifications");
             builder.Append("page", page);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<WhatCD.Model.ActionNotifications.Notifications>(json);
+            return JsonConvert.DeserializeObject<WhatCD.Model.ActionNotifications.Notifications>(json, JsonSettings);
         }
 
         /// <summary>
@@ -303,7 +342,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=top10&type=torrents");
             builder.Append("limit", limit);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<Top10Torrents>(json);
+            return JsonConvert.DeserializeObject<Top10Torrents>(json, JsonSettings);
         }
 
         /// <summary>
@@ -316,7 +355,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=top10&type=tags");
             builder.Append("limit", limit);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<Top10Tags>(json);
+            return JsonConvert.DeserializeObject<Top10Tags>(json, JsonSettings);
         }
 
         /// <summary>
@@ -329,7 +368,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=top10&type=users");
             builder.Append("limit", limit);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<Top10Users>(json);
+            return JsonConvert.DeserializeObject<Top10Users>(json, JsonSettings);
         }
 
 
@@ -346,7 +385,7 @@ namespace WhatCD
             builder.Append("id", options.RequestID);
             builder.Append("page", options.Page);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<WhatCD.Model.ActionRequest.Request>(json);
+            return JsonConvert.DeserializeObject<WhatCD.Model.ActionRequest.Request>(json, JsonSettings);
         }
 
         /// <summary>
@@ -364,7 +403,7 @@ namespace WhatCD
             builder.Append("tag", options.Tags);
             builder.Append("search", options.SearchTerm);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<Requests>(json);
+            return JsonConvert.DeserializeObject<Requests>(json, JsonSettings);
         }
 
 
@@ -387,7 +426,7 @@ namespace WhatCD
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
             // Because similar artists results do not conform to the standard reply we have to be dodgy so it can be deserialised
             if (!string.IsNullOrWhiteSpace(json)) json = string.Format("{{\"artists\":{0}}}", json);
-            return Deserialize<SimilarArtists>(json);
+            return JsonConvert.DeserializeObject<SimilarArtists>(json, JsonSettings);
         }
 
         /// <summary>
@@ -426,7 +465,7 @@ namespace WhatCD
             builder.Append("year", options.Year);
 
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<Browse>(json);
+            return JsonConvert.DeserializeObject<Browse>(json, JsonSettings);
         }
 
         /// <summary>
@@ -436,7 +475,7 @@ namespace WhatCD
         public BookmarksTorrents GetBookmarksTorrents()
         {
             var json = _http.RequestJson(this.RootWhatCDUri, "ajax.php?action=bookmarks&type=torrents");
-            return Deserialize<BookmarksTorrents>(json);
+            return JsonConvert.DeserializeObject<BookmarksTorrents>(json, JsonSettings);
         }
 
         /// <summary>
@@ -446,7 +485,7 @@ namespace WhatCD
         public BookmarksArtists GetBookmarksArtists()
         {
             var json = _http.RequestJson(this.RootWhatCDUri, "ajax.php?action=bookmarks&type=artists");
-            return Deserialize<BookmarksArtists>(json);
+            return JsonConvert.DeserializeObject<BookmarksArtists>(json, JsonSettings);
         }
 
         /// <summary>
@@ -459,7 +498,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=artist");
             builder.Append("id", artistID);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<WhatCD.Model.ActionArtist.Artist>(json);
+            return JsonConvert.DeserializeObject<WhatCD.Model.ActionArtist.Artist>(json, JsonSettings);
         }
 
         /// <summary>
@@ -472,7 +511,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=artist");
             builder.Append("artistname", artistName);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<WhatCD.Model.ActionArtist.Artist>(json);
+            return JsonConvert.DeserializeObject<WhatCD.Model.ActionArtist.Artist>(json, JsonSettings);
         }
 
         /// <summary>
@@ -485,7 +524,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=torrentgroup");
             builder.Append("id", groupID);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<TorrentGroup>(json);
+            return JsonConvert.DeserializeObject<TorrentGroup>(json, JsonSettings);
         }
 
         /// <summary>
@@ -507,6 +546,20 @@ namespace WhatCD
             return new Torrent(bytes, contentDisposition.Replace("attachment; filename=", "").Replace("\"", ""));
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="torrentID"></param>
+        /// <returns></returns>
+        public Uri GenerateTorrentDownloadUri(int torrentID)
+        {
+            var builder = new QueryBuilder("torrents.php?action=download");
+            builder.Append("id", torrentID);
+            builder.Append("authkey", this.AuthKey);
+            builder.Append("torrent_pass", this.PassKey);
+            return new Uri(this.RootWhatCDUri, builder.Query.ToString());
+        }
+
 
         // Users
 
@@ -520,7 +573,7 @@ namespace WhatCD
             var builder = new QueryBuilder("ajax.php?action=user");
             builder.Append("id", userID);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<User>(json);
+            return JsonConvert.DeserializeObject<User>(json, JsonSettings);
         }
 
         /// <summary>
@@ -535,7 +588,7 @@ namespace WhatCD
             builder.Append("search", searchTerm);
             builder.Append("page", page);
             var json = _http.RequestJson(this.RootWhatCDUri, builder.Query.ToString());
-            return Deserialize<UserSearch>(json);
+            return JsonConvert.DeserializeObject<UserSearch>(json, JsonSettings);
         }
 
         /// <summary>
@@ -553,35 +606,14 @@ namespace WhatCD
         /// </summary>
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
+            if (_http != null)
             {
-                if (disposing)
+                try
                 {
                     _http.Logoff(this.AuthKey);
                 }
-                _disposed = true;
+                catch (Exception) { }
             }
-        }
-
-         ~Api()
-        {
-            Dispose(false);
-        }
-
-
-        // Private
-
-        private T Deserialize<T>(string json)
-        {
-            var settings = new JsonSerializerSettings();
-            settings.MissingMemberHandling = this.ErrorOnMissingMember ? MissingMemberHandling.Error : MissingMemberHandling.Ignore;
-            return JsonConvert.DeserializeObject<T>(json, settings);
         }
 
     }

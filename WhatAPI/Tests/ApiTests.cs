@@ -22,6 +22,20 @@ namespace Tests
         public TestContext TestContext { get; set; }
 
         [TestMethod]
+        public void GetSessionIsValidTest()
+        {
+            Assert.IsTrue(Credentials.Api.SessionIsValid());
+        }
+
+        [TestMethod]
+        public void GetCollageTest()
+        {
+            var collageID = Credentials.WhatRandom.GetCollageId();
+            var collage = Credentials.Api.GetCollage(collageID);
+            this.PerformCommonResponseTests(collage);
+        }
+
+        [TestMethod]
         public void GetSubscriptionsTest()
         {
             var subscriptions = Credentials.Api.GetSubscriptions(true);

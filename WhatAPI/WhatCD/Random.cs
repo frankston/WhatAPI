@@ -9,6 +9,7 @@ using WhatCD.Model.ActionForum.TypeViewThread;
 using WhatCD.Model.ActionForum.TypeViewForum;
 using WhatCD.Model.ActionRequests;
 using System.Web;
+using WhatCD.Model.ActionCollage;
 
 namespace WhatCD
 {
@@ -21,6 +22,13 @@ namespace WhatCD
         public Random(Api api)
         {
             this.Api = api;
+        }
+
+        public int GetCollageId(int maxAttempts = 20)
+        {
+            // At the time of checking valid collage IDs fell into the range of 1 through to ~20,000
+            Func<int, Collage> apiCall = (id) => Api.GetCollage(id);
+            return BruteForceFindValidId<Collage, WhatCD.Model.ActionCollage.Response>(apiCall, 1, 20000, maxAttempts);
         }
 
         public string GetTorrentHash()
@@ -249,7 +257,7 @@ namespace WhatCD
             var range = Enumerable.Range(smallest, largest).ToArray();
             if (range.Intersect(exclude).ToArray().Length == range.Length) throw new ArgumentOutOfRangeException("No return value is possible - all integer selections are excluded");
 
-            // TODO: This should be made far more efficient - not a high priority since it is only ever used during testing
+            // TODO: This should be made far more efficient - not a high priority since it is only ever used in the API during testing
             while (true)
             {
                 var value = random.Next(smallest, largest + 1);

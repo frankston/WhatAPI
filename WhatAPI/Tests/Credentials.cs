@@ -17,7 +17,7 @@ namespace Tests
         [AssemblyInitialize]
         public static void AssemblyInitialize(TestContext context)
         {
-            Api = new Api("YourUsername", "YourPassword") { ErrorOnMissingMember = true };
+            Api = new Api("YourUsername", "YourPassword", true);
             WhatRandom = new WhatCD.Random(Api);
         }
 
